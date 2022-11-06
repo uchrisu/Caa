@@ -51,8 +51,11 @@ private slots:
 
 private:
     QColor get_color(int index, int type);
+    void update_statusbar();
 
     Ui::MainWindow *ui;
+
+    QLabel status_label;
 
     QwtPlot *plot_signal;
     QwtPlotCurve **curve_signal, **curve_ref;

@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->setupUi(this);
 
+    statusBar()->addPermanentWidget(&status_label);
+
     plot_signal = new QwtPlot();
     plot_signal->setTitle( "Signal Amplitude" );
     plot_signal->setCanvasBackground( Qt::white );
@@ -708,6 +710,8 @@ void MainWindow::update_timer_event()
         }
     }
 
+    update_statusbar();
+
 }
 
 
@@ -900,5 +904,32 @@ QColor MainWindow::get_color(int index, int type)
     }
 
     return QColor(r,g,b);
+}
+
+void MainWindow::update_statusbar()
+{
+    if (asa == nullptr)
+        return;
+    QString text;
+    text.clear();
+    text.append("Calculation time: ");
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        if (channels_check_update[i]->isChecked())
+            text.append(QString::number(asa[i]->get_calc_time_full()).rightJustified(4) + QString(" ms"));
+        else
+            text.append("-");
+        if (i != (NUM_SYSTEMS - 1))
+            text.append(" / ");
+    }
+    text.append("  |  Identification time: ");
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        if (channels_check_update[i]->isChecked())
+            text.append(QString::number(asa[i]->get_calc_time_identify()).rightJustified(4) + QString(" ms"));
+        else
+            text.append("-");
+        if (i != (NUM_SYSTEMS - 1))
+            text.append(" / ");
+    }
+    status_label.setText(text);
 }
 

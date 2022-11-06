@@ -59,6 +59,9 @@ public:
     void set_window_type(int wintype);
     void get_window_vals(double *vals, int length);
 
+    int get_calc_time_full();
+    int get_calc_time_identify();
+
 
 private:
 
@@ -137,6 +140,9 @@ private:
     double *dualfft_out;
     fftw_plan plan_dualfft_in_x, plan_dualfft_in_y;
     fftw_plan plan_dualfft_out;
+
+    std::atomic<int> calc_time_full;
+    std::atomic<int> calc_time_identify;
 
 
 };

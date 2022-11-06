@@ -10,6 +10,9 @@
 
 AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
 {
+    calc_time_full = 0;
+    calc_time_identify = 0;
+
     this->index = index;
     this->sysident_method = config_stdindex_sysident_methods;
 
@@ -454,6 +457,7 @@ int AudioSystemAnalyzer::get_freq_smooting()
 
 int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
 {
+    auto start_t = std::chrono::high_resolution_clock::now();
     // Some comments here of old code for a better explanation of what the algorithm does
     double h_new[N];
     int64_t pos_ref, pos_sig;
@@ -489,8 +493,6 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
             toprow[i] = 0.0;
             rxy[i] = 0.0;
         }
-
-        auto start_t = std::chrono::high_resolution_clock::now();
 
         //    for (int k = start; k < (start + L); k++){
         //        for (int j = 0; j < N; j++){
@@ -540,10 +542,6 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
         for (int i = 0; i < N; i++)
             rxy[i] = data_corr_out[L - 1 + i]/(2*L);
 
-
-        auto ende_t  = std::chrono::high_resolution_clock::now();
-        //std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(ende_t-start_t).count() << " ms, ";
-
         double toepv[2*N-1];
 
         for (int i = 0; i < N; i++)
@@ -551,15 +549,10 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
         for (int i = 1; i < N; i++)
             toepv[i+N-1] = toprow[i];
 
-        start_t = std::chrono::high_resolution_clock::now();
-
         solve_toepliz(h_new, toepv, rxy, N);
 
 
         //solve_toepliz2(h, toprow, toprow, rxy, N);
-
-        ende_t  = std::chrono::high_resolution_clock::now();
-        std::cout << " " << std::chrono::duration_cast<std::chrono::milliseconds>(ende_t-start_t).count() << " ms" << std::endl;
 
         delete[] toprow;
         delete[] rxy;
@@ -609,6 +602,9 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
             std::cout << "NAN" << std::endl;
     }
 
+    auto ende_t  = std::chrono::high_resolution_clock::now();
+
+    calc_time_identify = std::chrono::duration_cast<std::chrono::milliseconds>(ende_t-start_t).count();
 
     return 0;
 
@@ -1036,6 +1032,16 @@ void AudioSystemAnalyzer::get_window_vals(double *vals, int length)
     window->get_window(vals, length);
 }
 
+int AudioSystemAnalyzer::get_calc_time_full()
+{
+    return calc_time_full;
+}
+
+int AudioSystemAnalyzer::get_calc_time_identify()
+{
+    return calc_time_identify;
+}
+
 
 int AudioSystemAnalyzer::solve_toepliz(double *x, double *a, double *b, int n)
 {
@@ -1176,10 +1182,13 @@ void AudioSystemAnalyzer::calc_thread_fun()
             start_calculation = false;
             if (L > 0){
                 calc_mtx.lock();
+                auto start_t  = std::chrono::high_resolution_clock::now();
                 int_identify_IR(end_position);
                 int_calc_freq_resp();
                 int_calc_phase();
                 int_calc_smooth();
+                auto ende_t  = std::chrono::high_resolution_clock::now();
+                calc_time_full = std::chrono::duration_cast<std::chrono::milliseconds>(ende_t-start_t).count();
                 calc_mtx.unlock();
             }
             calc_result_N = N;
