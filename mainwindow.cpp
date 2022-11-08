@@ -119,6 +119,14 @@ MainWindow::MainWindow(QWidget *parent)
         curve_groupdelay[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
     }
 
+    curve_mscohere = new QwtPlotCurve *[NUM_SYSTEMS];
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        curve_mscohere[i] = new QwtPlotCurve();
+        curve_mscohere[i]->setTitle( "Coherence" );
+        curve_mscohere[i]->setPen( get_color(i,1), 2 );
+        curve_mscohere[i]->setYAxis( QwtAxis::YRight );
+        curve_mscohere[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+    }
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_signal[i]->attach(plot_signal);
@@ -132,6 +140,7 @@ MainWindow::MainWindow(QWidget *parent)
         curve_freqResp[i]->attach(plot_freqResp);
         curve_phaseResp[i]->attach(plot_freqResp);
         curve_groupdelay[i]->attach(plot_freqResp);
+        curve_mscohere[i]->attach(plot_freqResp);
     }
 
 
@@ -584,6 +593,7 @@ void MainWindow::update_timer_event()
             curve_freqResp[i]->hide();
             curve_phaseResp[i]->hide();
             curve_groupdelay[i]->hide();
+            curve_mscohere[i]->hide();
         }
         if (!ui->checkBox_showFreqAmp->isChecked())
             curve_freqResp[i]->hide();
@@ -591,6 +601,8 @@ void MainWindow::update_timer_event()
             curve_phaseResp[i]->hide();
         if (!ui->checkBox_showGroupdelay->isChecked())
             curve_groupdelay[i]->hide();
+        if (!ui->checkBox_showMSCohere->isChecked())
+            curve_mscohere[i]->hide();
         if (!ui->checkBox_showMeas->isChecked())
             curve_signal[i]->hide();
         if (!ui->checkBox_showRef->isChecked())
@@ -657,6 +669,7 @@ void MainWindow::update_timer_event()
             double fr[Nf];
             double phase[Nf];
             double groupdelay[Nf];
+            double mscohere[Nf];
             double fr_freq[Nf];
             for (int i = 0; i < Nf; i++){
                 fr_freq[i] = i * jabuffer->get_fs() / Nf;
@@ -665,11 +678,13 @@ void MainWindow::update_timer_event()
             asa[number]->get_freq_resp_db(fr, Nf);
             asa[number]->get_phase(phase, Nf);
             asa[number]->get_groupdelay(groupdelay, Nf);
+            asa[number]->get_mscohere(mscohere, Nf);
             if (asa[number]->get_freq_smooting() == 0) {
                 //std::cout << "low_freq: " << fr_freq[1] << ", " << fr[1] << std::endl;
                 curve_freqResp[number]->setSamples(&fr_freq[1], &fr[1], round(Nf/2) -1);
-                curve_phaseResp[number]->setSamples(&fr_freq[1], &phase[1], round(Nf) -1);
-                curve_groupdelay[number]->setSamples(&fr_freq[1], &groupdelay[1], round(Nf) -1);
+                curve_phaseResp[number]->setSamples(&fr_freq[1], &phase[1], round(Nf/2) -1);
+                curve_groupdelay[number]->setSamples(&fr_freq[1], &groupdelay[1], round(Nf/2) -1);
+                curve_mscohere[number]->setSamples(&fr_freq[1], &mscohere[1], round(Nf/2) -1);
             }
             else {
                 std::vector<double> tmp_data;
@@ -682,6 +697,8 @@ void MainWindow::update_timer_event()
                 curve_phaseResp[number]->setSamples(tmp_freq.data(), tmp_data.data(), len);
                 tmp_data = asa[number]->get_smgroupdelay();
                 curve_groupdelay[number]->setSamples(tmp_freq.data(), tmp_data.data(), len);
+                tmp_data = asa[number]->get_smmscohere();
+                curve_mscohere[number]->setSamples(tmp_freq.data(), tmp_data.data(), len);
             }
             plot_freqResp->replot();
 
@@ -707,6 +724,8 @@ void MainWindow::update_timer_event()
                 curve_phaseResp[i]->show();
             if (ui->checkBox_showGroupdelay->isChecked())
                 curve_groupdelay[i]->show();
+            if (ui->checkBox_showMSCohere->isChecked())
+                curve_mscohere[i]->show();
         }
     }
 

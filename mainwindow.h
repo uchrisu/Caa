@@ -65,7 +65,7 @@ private:
     QwtPlotCurve **curve_window_ir;
     QwtPlotGrid *grid_ir;
     QwtPlot *plot_freqResp;
-    QwtPlotCurve **curve_freqResp, **curve_phaseResp, **curve_groupdelay;
+    QwtPlotCurve **curve_freqResp, **curve_phaseResp, **curve_groupdelay, **curve_mscohere;
     QwtPlotGrid* grid_freqResp;
 
 

@@ -18,6 +18,7 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
 
     window = new windowfunc(windowfunc::type_rectangular, 0);
     sysident_window = new windowfunc(windowfunc::type_rectangular, 0);
+    mscohere_window = new windowfunc(windowfunc::type_hamming, 0);
 
     this->shutdown = false;
     this->start_calculation = false;
@@ -35,6 +36,7 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
     this->phase = nullptr;
     this->phase_unwrapped = nullptr;
     this->groupdelay = nullptr;
+    this->mscohere = nullptr;
     this->x = nullptr;
     this->y = nullptr;
 
@@ -64,6 +66,11 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
     plan_dualfft_in_x = nullptr;
     plan_dualfft_in_y = nullptr;
     plan_dualfft_out = nullptr;
+    mscohere_fft_in = nullptr;
+    mscohere_fft_outx = nullptr;
+    mscohere_fft_outy = nullptr;
+    plan_mscohere_x = nullptr;
+    plan_mscohere_y = nullptr;
 
     calc_result_N = calc_result_L = calc_result_Nf = 0;
 
@@ -88,6 +95,7 @@ AudioSystemAnalyzer::~AudioSystemAnalyzer()
 
     delete window;
     delete sysident_window;
+    delete mscohere_window;
 
     if (h != nullptr)
         delete[] h;
@@ -152,6 +160,17 @@ AudioSystemAnalyzer::~AudioSystemAnalyzer()
         fftw_destroy_plan(plan_dualfft_in_y);
     if (plan_dualfft_out != nullptr)
         fftw_destroy_plan(plan_dualfft_out);
+
+    if (mscohere_fft_in != nullptr)
+        fftw_free(mscohere_fft_in);
+    if (mscohere_fft_outx != nullptr)
+        fftw_free(mscohere_fft_outx);
+    if (mscohere_fft_outy != nullptr)
+        fftw_free(mscohere_fft_outy);
+    if (plan_mscohere_x != nullptr)
+        fftw_destroy_plan(plan_mscohere_x);
+    if (plan_mscohere_y != nullptr)
+        fftw_destroy_plan(plan_mscohere_y);
 }
 
 void AudioSystemAnalyzer::set_delay(int delay)
@@ -251,6 +270,7 @@ void AudioSystemAnalyzer::set_freq_length(int len)
     }
 
     this->Nf = len;
+    mscohere_window->set_window_length(Nf);
 
     if (this->phase != nullptr)
         delete[] phase;
@@ -276,12 +296,34 @@ void AudioSystemAnalyzer::set_freq_length(int len)
         fftw_destroy_plan(plan_h2freq);
     plan_h2freq = fftw_plan_dft_r2c_1d(Nf, h_fft, f_h, FFTW_ESTIMATE);
 
+    if (mscohere_fft_in != nullptr)
+        fftw_free(mscohere_fft_in);
+    mscohere_fft_in = (double *) fftw_malloc(sizeof(double) * Nf);
+    if (mscohere_fft_outx != nullptr)
+        fftw_free(mscohere_fft_outx);
+    mscohere_fft_outx = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * Nf);
+    if (mscohere_fft_outy != nullptr)
+        fftw_free(mscohere_fft_outy);
+    mscohere_fft_outy = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * Nf);
+    if (plan_mscohere_x != nullptr)
+        fftw_destroy_plan(plan_mscohere_x);
+    plan_mscohere_x = fftw_plan_dft_r2c_1d(Nf, mscohere_fft_in, mscohere_fft_outx, FFTW_ESTIMATE);
+    if (plan_mscohere_y != nullptr)
+        fftw_destroy_plan(plan_mscohere_y);
+    plan_mscohere_y = fftw_plan_dft_r2c_1d(Nf, mscohere_fft_in, mscohere_fft_outy, FFTW_ESTIMATE);
+
+    if (mscohere != nullptr)
+        delete[] mscohere;
+    mscohere = new double[Nf];
+
+
     for (int i = 0; i < len; i++){
         this->f_h[i][0] = 0.0;
         this->f_h[i][1] = 0.0;
         this->phase[i] = 0.0;
         this->phase_unwrapped[i] = 0.0;
         this->groupdelay[i] = 0.0;
+        this->mscohere[i] = 0.0;
     }
     calculation_done = false;
     calc_result_Nf = 0;
@@ -409,6 +451,7 @@ void AudioSystemAnalyzer::set_freq_smooting(int steps_per_octave)
     fsmooth_phase.resize(len);
     fsmooth_phase_unwrapped.resize(len);
     fsmooth_groupdelay.resize(len);
+    fsmooth_mscohere.resize(len);
     for (int i = 0; i < len; i++){
         fsmooth_freq[i] = 20*std::pow(2, static_cast<double>(i)/steps_per_octave);
         fsmooth_re[i] = 0.0;
@@ -418,6 +461,7 @@ void AudioSystemAnalyzer::set_freq_smooting(int steps_per_octave)
         fsmooth_phase[i] = 0.0;
         fsmooth_phase_unwrapped[i] = 0.0;
         fsmooth_groupdelay[i] = 0.0;
+        fsmooth_mscohere[i] = 0.0;
     }
     calc_mtx.unlock();
 }
@@ -749,6 +793,66 @@ int AudioSystemAnalyzer::int_calc_phase()
     return 0;
 }
 
+int AudioSystemAnalyzer::int_calc_mscohere()
+{
+    if (Nf < 1)
+        return -1;
+
+    double Pxy_re[Nf], Pxy_im[Nf];
+    double Pxx_re[Nf];
+    double Pyy_re[Nf];
+
+    for (int i = 0; i < Nf; i++){
+        Pxy_re[i] = 0.0;
+        Pxy_im[i] = 0.0;
+        Pxx_re[i] = 0.0;
+        Pyy_re[i] = 0.0;
+    }
+
+    for (int seg_start = 0; seg_start < (L - Nf); seg_start += Nf / 2){
+        for (int i = 0; i < Nf; i++){
+            mscohere_fft_in[i] = mscohere_window->get_factor(i) * x[seg_start + i];
+        }
+        fftw_execute(plan_mscohere_x);
+        for (int i = 0; i < Nf; i++){
+            mscohere_fft_in[i] = mscohere_window->get_factor(i) * y[seg_start + i];
+        }
+        fftw_execute(plan_mscohere_y);
+        // Pxy = Pxy + fft_y .* conj(fft_x);
+        for (int i = 0; i < Nf; i++){
+            Pxy_re[i] += mscohere_fft_outx[i][0] * mscohere_fft_outy[i][0];
+            Pxy_re[i] += mscohere_fft_outx[i][1] * mscohere_fft_outy[i][1];
+            Pxy_im[i] += mscohere_fft_outx[i][0] * mscohere_fft_outy[i][1];
+            Pxy_im[i] -= mscohere_fft_outx[i][1] * mscohere_fft_outy[i][0];
+            Pxx_re[i] += mscohere_fft_outx[i][0] * mscohere_fft_outx[i][0];
+            Pxx_re[i] += mscohere_fft_outx[i][1] * mscohere_fft_outx[i][1];
+            Pyy_re[i] += mscohere_fft_outy[i][0] * mscohere_fft_outy[i][0];
+            Pyy_re[i] += mscohere_fft_outy[i][1] * mscohere_fft_outy[i][1];
+        }
+    }
+    for (int i = 1; i < Nf / 2; i++) {
+        Pxy_re[i] += Pxy_re[Nf-i];
+        Pxy_im[i] -= Pxy_im[Nf-i];
+        Pxy_re[Nf-i] = Pxy_re[i];
+        Pxy_im[Nf-i] = Pxy_im[i];
+        Pxx_re[i] += Pxx_re[Nf-i];
+        Pxx_re[Nf-i] = Pxx_re[i];
+        Pyy_re[i] += Pyy_re[Nf-i];
+        Pyy_re[Nf-i] = Pyy_re[i];
+    }
+
+    for (int i = 0; i < Nf; i ++){
+        double nom = Pxy_re[i] * Pxy_re[i] + Pxy_im[i] * Pxy_im[i];
+        double den = Pxx_re[i] * Pyy_re[i];
+        if (std::abs(den) > 0)
+            mscohere[i] = nom/den;
+        else
+            mscohere[i] = 0.0;
+    }
+
+    return 0;
+}
+
 
 int AudioSystemAnalyzer::int_calc_smooth()
 {
@@ -759,6 +863,7 @@ int AudioSystemAnalyzer::int_calc_smooth()
     int len = fsmooth_freq.size();
     int fpos = 0;
     double sum_i, sum_re, sum_im;
+    double msc;
     double fs = audiobuffer->get_fs();
     double offset = 0.0;
     for (int i = 0; i < len; i++){
@@ -772,10 +877,14 @@ int AudioSystemAnalyzer::int_calc_smooth()
         if (fpos >= Nf) 
             break;
         sum_i = sum_re = sum_im = 0;
+        msc = 1.0;
         while((static_cast<double>(fpos)/Nf*fs) <= lim2){
             sum_i += 1;
             sum_re += f_h[fpos][0];
             sum_im += f_h[fpos][1];
+            // minimum for coherence to stay on the "safe" side:
+            if (mscohere[fpos] < msc)
+                msc = mscohere[fpos];
             fpos++;
              if (fpos >= Nf) 
                 break;
@@ -783,16 +892,19 @@ int AudioSystemAnalyzer::int_calc_smooth()
         if (sum_i > 0) {
             fsmooth_re[i] = sum_re/sum_i;
             fsmooth_im[i] = sum_im/sum_i;
+            fsmooth_mscohere[i] = msc;
         }
         else {
 
             if (fpos >= Nf) {
                 fsmooth_re[i] = f_h[Nf-1][0];
                 fsmooth_im[i] = f_h[Nf-1][1];
+                fsmooth_mscohere[i] = mscohere[Nf-1];
             }
             else if (fpos == 0) {
                 fsmooth_re[i] = f_h[0][0];
                 fsmooth_im[i] = f_h[0][1];
+                fsmooth_mscohere[i] = mscohere[0];
             }
             else {
                 double center_freq = 20*std::pow(2, static_cast<double>(i)/steps_per_octave);
@@ -802,6 +914,11 @@ int AudioSystemAnalyzer::int_calc_smooth()
                 double factor_r = (center_freq-f_left)/(f_right-f_left);
                 fsmooth_re[i] = f_h[fpos-1][0]*factor_l + f_h[fpos][0]*factor_r;
                 fsmooth_im[i] = f_h[fpos-1][1]*factor_l + f_h[fpos][1]*factor_r;
+                // minimum for coherence to stay on the "safe" side:
+                if (mscohere[fpos-1] < mscohere[fpos])
+                    fsmooth_mscohere[i] = mscohere[fpos-1];
+                else
+                    fsmooth_mscohere[i] = mscohere[fpos];
             }
 
         }
@@ -947,8 +1064,8 @@ int AudioSystemAnalyzer::get_phase_unwrapped(double *phase, int len)
     if (!calc_mtx.try_lock())
         return ASA_RETURN_BUSY;
     int num = len;
-    if (num > N)
-        num = N;
+    if (num > calc_result_Nf)
+        num = calc_result_Nf;
     for (int i = 0; i < num; i++)
         phase[i] = phase_unwrapped[i];
     for (int i = num; i < len; i++)
@@ -963,12 +1080,28 @@ int AudioSystemAnalyzer::get_groupdelay(double *gd, int len)
     if (!calc_mtx.try_lock())
         return ASA_RETURN_BUSY;
     int num = len;
-    if (num > N)
-        num = N;
+    if (num > calc_result_Nf)
+        num = calc_result_Nf;
     for (int i = 0; i < num; i++)
         gd[i] = groupdelay[i];
     for (int i = num; i < len; i++)
         gd[i] = 0;
+    calc_mtx.unlock();
+
+    return num;
+}
+
+int AudioSystemAnalyzer::get_mscohere(double *msc, int len)
+{
+    if (!calc_mtx.try_lock())
+        return ASA_RETURN_BUSY;
+    int num = len;
+    if (num > calc_result_Nf)
+        num = calc_result_Nf;
+    for (int i = 0; i < num; i++)
+        msc[i] = mscohere[i];
+    for (int i = num; i < len; i++)
+        msc[i] = 0;
     calc_mtx.unlock();
 
     return num;
@@ -1002,6 +1135,11 @@ std::vector<double> AudioSystemAnalyzer::get_smfreq()
 std::vector<double> AudioSystemAnalyzer::get_smgroupdelay()
 {
     return fsmooth_groupdelay;
+}
+
+std::vector<double> AudioSystemAnalyzer::get_smmscohere()
+{
+    return fsmooth_mscohere;
 }
 
 void AudioSystemAnalyzer::set_sysident_window_type(int wintype)
@@ -1186,6 +1324,7 @@ void AudioSystemAnalyzer::calc_thread_fun()
                 int_identify_IR(end_position);
                 int_calc_freq_resp();
                 int_calc_phase();
+                int_calc_mscohere();
                 int_calc_smooth();
                 auto ende_t  = std::chrono::high_resolution_clock::now();
                 calc_time_full = std::chrono::duration_cast<std::chrono::milliseconds>(ende_t-start_t).count();

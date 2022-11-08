@@ -116,6 +116,13 @@
                </widget>
               </item>
               <item>
+               <widget class="QCheckBox" name="checkBox_showMSCohere">
+                <property name="text">
+                 <string>Coherence</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <widget class="QComboBox" name="comboBox_freqSmoothing"/>
               </item>
              </layout>

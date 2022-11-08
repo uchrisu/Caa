@@ -46,12 +46,14 @@ public:
     int get_phase(double *phase, int len);
     int get_phase_unwrapped(double *phase, int len);
     int get_groupdelay(double *gd, int len);
+    int get_mscohere(double *msc, int len);
     std::vector<double> get_smfreq_resp();
     std::vector<double> get_smfreq_resp_db();
     std::vector<double> get_smphase();
     std::vector<double> get_smphase_unwrapped();
     std::vector<double> get_smfreq();
     std::vector<double> get_smgroupdelay();
+    std::vector<double> get_smmscohere();
 
     void set_sysident_window_type(int wintype);
     void set_window_length(int length);
@@ -68,6 +70,7 @@ private:
     int int_identify_IR(int64_t end_position);
     int int_calc_freq_resp();
     int int_calc_phase();
+    int int_calc_mscohere();
     int int_calc_smooth();
 
     int solve_toepliz(double *x, double *a, double *b, int n);
@@ -83,7 +86,7 @@ private:
     std::atomic<int> sysident_method;
 
     JAudioBuffer *audiobuffer;
-    windowfunc *window, *sysident_window;
+    windowfunc *window, *sysident_window, *mscohere_window;
 
 
     int N, Nf;
@@ -94,6 +97,7 @@ private:
 
     double *h;
     double *phase, *phase_unwrapped, *groupdelay;
+    double *mscohere;
     
     int steps_per_octave;
     std::vector<double> fsmooth_freq;
@@ -104,6 +108,7 @@ private:
     std::vector<double> fsmooth_phase;
     std::vector<double> fsmooth_phase_unwrapped;
     std::vector<double> fsmooth_groupdelay;
+    std::vector<double> fsmooth_mscohere;
 
     float *x, *y;
 
@@ -140,6 +145,12 @@ private:
     double *dualfft_out;
     fftw_plan plan_dualfft_in_x, plan_dualfft_in_y;
     fftw_plan plan_dualfft_out;
+
+    double *mscohere_fft_in;
+    fftw_complex *mscohere_fft_outx;
+    fftw_complex *mscohere_fft_outy;
+    fftw_plan plan_mscohere_x;
+    fftw_plan plan_mscohere_y;
 
     std::atomic<int> calc_time_full;
     std::atomic<int> calc_time_identify;
