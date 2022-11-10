@@ -14,6 +14,9 @@
 #include <qwt_plot_grid.h>
 #include "jaudiobuffer.h"
 #include "audiosystemanalyzer.h"
+#include "plotfreqresp.h"
+#include "plotir.h"
+#include "plotsignal.h"
 #include "qcombobox.h"
 
 QT_BEGIN_NAMESPACE
@@ -50,24 +53,15 @@ private slots:
     void setWindow_clicked();
 
 private:
-    QColor get_color(int index, int type);
     void update_statusbar();
 
     Ui::MainWindow *ui;
 
     QLabel status_label;
 
-    QwtPlot *plot_signal;
-    QwtPlotCurve **curve_signal, **curve_ref;
-    QwtPlotGrid* grid_signal;
-    QwtPlot *plot_ir;
-    QwtPlotCurve **curve_ir;
-    QwtPlotCurve **curve_window_ir;
-    QwtPlotGrid *grid_ir;
-    QwtPlot *plot_freqResp;
-    QwtPlotCurve **curve_freqResp, **curve_phaseResp, **curve_groupdelay, **curve_mscohere;
-    QwtPlotGrid* grid_freqResp;
-
+    PlotSignal *plot_signal;
+    PlotIR *plot_ir;
+    PlotFreqResp *plot_freqResp;
 
     QWidget **channels_tabs;
     QVBoxLayout **channels_layouts;

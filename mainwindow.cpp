@@ -19,145 +19,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     statusBar()->addPermanentWidget(&status_label);
 
-    plot_signal = new QwtPlot();
-    plot_signal->setTitle( "Signal Amplitude" );
-    plot_signal->setCanvasBackground( Qt::white );
+    plot_signal = new PlotSignal;
 
-    grid_signal = new QwtPlotGrid;
-    grid_signal->enableXMin( true );
-    grid_signal->enableYMin( true );
-    grid_signal->setMajorPen( Qt::gray, 0, Qt::SolidLine );
-    grid_signal->setMinorPen( Qt::gray, 0, Qt::DotLine );
-    grid_signal->setAxes(QwtPlot::xBottom, QwtPlot::yLeft);
-    grid_signal->attach(plot_signal);
+    plot_ir = new PlotIR();
 
-    curve_signal = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_signal[i] = new QwtPlotCurve();
-        curve_signal[i]->setTitle( "Channel " + QString::number(i) );
-        curve_signal[i]->setPen( get_color(i,0), 2 ),
-        curve_signal[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-    curve_ref = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_ref[i] = new QwtPlotCurve();
-        curve_ref[i]->setTitle( "Ref " + QString::number(i) );
-        curve_ref[i]->setPen( get_color(i,1), 2 ),
-        curve_ref[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-
-    plot_ir = new QwtPlot();
-    plot_ir->setTitle( "Impulse Response" );
-    plot_ir->setCanvasBackground( Qt::white );
-
-    grid_ir = new QwtPlotGrid;
-    grid_ir->enableXMin( true );
-    grid_ir->enableYMin( true );
-    grid_ir->setMajorPen( Qt::gray, 0, Qt::SolidLine );
-    grid_ir->setMinorPen( Qt::gray, 0, Qt::DotLine );
-    grid_ir->setAxes(QwtPlot::xBottom, QwtPlot::yLeft);
-    grid_ir->attach(plot_ir);
-
-    curve_ir = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_ir[i] = new QwtPlotCurve();
-        curve_ir[i]->setTitle( QString("Ch. ") + QString::number(i+1)  );
-        curve_ir[i]->setPen( get_color(i,0), 2 ),
-        curve_ir[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-    curve_window_ir = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_window_ir[i] = new QwtPlotCurve();
-        curve_window_ir[i]->setTitle( "Window" );
-        curve_window_ir[i]->setPen( get_color(i,0), 2 ),
-        curve_window_ir[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-
-    plot_freqResp = new QwtPlot();
-    plot_freqResp->setTitle( "Frequency Response" );
-    plot_freqResp->setCanvasBackground( Qt::white );
-
-    plot_freqResp->setAxisVisible( QwtAxis::YRight );
-
-
-    grid_freqResp = new QwtPlotGrid;
-    grid_freqResp->enableXMin( true );
-    grid_freqResp->enableYMin( true );
-    grid_freqResp->setMajorPen( Qt::gray, 0, Qt::SolidLine );
-    grid_freqResp->setMinorPen( Qt::gray, 0, Qt::DotLine );
-    grid_freqResp->setAxes(QwtPlot::xBottom, QwtPlot::yLeft);
-    grid_freqResp->attach(plot_freqResp);
-
-    curve_freqResp = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_freqResp[i] = new QwtPlotCurve();
-        curve_freqResp[i]->setTitle( "Amplitude" );
-        curve_freqResp[i]->setPen( get_color(i,0), 2 );
-        curve_freqResp[i]->setYAxis( QwtAxis::YLeft );
-        curve_freqResp[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-    curve_phaseResp = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_phaseResp[i] = new QwtPlotCurve();
-        curve_phaseResp[i]->setTitle( "Phase" );
-        curve_phaseResp[i]->setPen( get_color(i,1), 2 );
-        curve_phaseResp[i]->setYAxis( QwtAxis::YRight );
-        curve_phaseResp[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-    curve_groupdelay = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_groupdelay[i] = new QwtPlotCurve();
-        curve_groupdelay[i]->setTitle( "Group Delay" );
-        curve_groupdelay[i]->setPen( get_color(i,1), 2 );
-        curve_groupdelay[i]->setYAxis( QwtAxis::YRight );
-        curve_groupdelay[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-    curve_mscohere = new QwtPlotCurve *[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_mscohere[i] = new QwtPlotCurve();
-        curve_mscohere[i]->setTitle( "Coherence" );
-        curve_mscohere[i]->setPen( get_color(i,1), 2 );
-        curve_mscohere[i]->setYAxis( QwtAxis::YRight );
-        curve_mscohere[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    }
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_signal[i]->attach(plot_signal);
-        curve_ref[i]->attach(plot_signal);
-    }
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        curve_ir[i]->attach(plot_ir);
-        curve_window_ir[i]->attach(plot_ir);
-
-        curve_freqResp[i]->attach(plot_freqResp);
-        curve_phaseResp[i]->attach(plot_freqResp);
-        curve_groupdelay[i]->attach(plot_freqResp);
-        curve_mscohere[i]->attach(plot_freqResp);
-    }
-
-
-    // Axes
-    plot_signal->setAxisTitle(QwtPlot::xBottom, "Sample");
-
-    plot_ir->setAxisTitle(QwtPlot::xBottom, "Sample");
-
-    plot_freqResp->setAxisScaleEngine(QwtPlot::xBottom, new QwtLogScaleEngine);
-    plot_freqResp->setAxisScale(QwtPlot::xBottom, 20, 20000);
-    plot_freqResp->setAxisScale(QwtPlot::yLeft, -40, 40);
-    plot_freqResp->setAxisScale(QwtPlot::yRight, -M_PI, M_PI);
-    plot_freqResp->setAxisMaxMinor(QwtPlot::xBottom, 9);
-    plot_freqResp->setAxisTitle(QwtPlot::xBottom, "Frequency [Hz]");
-    plot_freqResp->setAxisTitle(QwtPlot::yLeft, "Amplitude [dB]");
-    plot_freqResp->setAxisTitle(QwtPlot::yRight, "Phase");
-
+    plot_freqResp = new PlotFreqResp();
 
     ui->verticalLayout_signal->addWidget(plot_signal);
     ui->verticalLayout_signal->setDirection(QBoxLayout::BottomToTop);
@@ -472,6 +338,18 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->comboBox_freqSmoothing, SIGNAL(currentIndexChanged(int)), this, SLOT(sel_freSmooting_changed(int)));
 
 
+    // Buttons etc.
+
+    connect(ui->pushButton_zoomSignalIn, &QPushButton::clicked, plot_signal, &PlotSignal::zoom_in);
+    connect(ui->pushButton_zoomSignalOut, &QPushButton::clicked, plot_signal, &PlotSignal::zoom_out);
+    connect(ui->pushButton_zoomIRIn, &QPushButton::clicked, plot_ir, &PlotIR::zoom_in);
+    connect(ui->pushButton_zoomIROut, &QPushButton::clicked, plot_ir, &PlotIR::zoom_out);
+    connect(ui->pushButton_zoomFreqLeftIn, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_in_left);
+    connect(ui->pushButton_zoomFreqLeftOut, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_out_left);
+    connect(ui->pushButton_zoomFreqRightIn, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_in_right);
+    connect(ui->pushButton_zoomFreqRightOut, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_out_right);
+
+
     // Timer
 
     updatetimer = new QTimer(this);
@@ -586,29 +464,29 @@ void MainWindow::update_timer_event()
     for (int i = 0; i < NUM_SYSTEMS; i++)
     {
         if (!channels_check_show[i]->isChecked()){
-            curve_signal[i]->hide();
-            curve_ref[i]->hide();
-            curve_ir[i]->hide();
-            curve_window_ir[i]->hide();
-            curve_freqResp[i]->hide();
-            curve_phaseResp[i]->hide();
-            curve_groupdelay[i]->hide();
-            curve_mscohere[i]->hide();
+            plot_signal->set_visible_sig(i, false);
+            plot_signal->set_visible_ref(i, false);
+            plot_ir->set_visible_ir(i, false);
+            plot_ir->set_visible_window(i, false);
+            plot_freqResp->set_visible_magn(i, false);
+            plot_freqResp->set_visible_phase(i, false);
+            plot_freqResp->set_visible_groupdelay(i, false);
+            plot_freqResp->set_visible_mscohere(i, false);
         }
         if (!ui->checkBox_showFreqAmp->isChecked())
-            curve_freqResp[i]->hide();
+            plot_freqResp->set_visible_magn(i, false);
         if (!ui->checkBox_showFreqPhase->isChecked())
-            curve_phaseResp[i]->hide();
+            plot_freqResp->set_visible_phase(i, false);
         if (!ui->checkBox_showGroupdelay->isChecked())
-            curve_groupdelay[i]->hide();
+            plot_freqResp->set_visible_groupdelay(i, false);
         if (!ui->checkBox_showMSCohere->isChecked())
-            curve_mscohere[i]->hide();
+            plot_freqResp->set_visible_mscohere(i, false);
         if (!ui->checkBox_showMeas->isChecked())
-            curve_signal[i]->hide();
+            plot_signal->set_visible_sig(i, false);
         if (!ui->checkBox_showRef->isChecked())
-            curve_ref[i]->hide();
+            plot_signal->set_visible_ref(i, false);
         if (!ui->checkBox_showWindowIR->isChecked())
-            curve_window_ir[i]->hide();
+            plot_ir->set_visible_window(i, false);
     }
 
     if (jabuffer == nullptr)
@@ -626,13 +504,12 @@ void MainWindow::update_timer_event()
 
     for (int number = 0; number < NUM_SYSTEMS; number++){
         jabuffer->get_samples(number*2+1, position - 1000, data, 1000);
-        curve_ref[number]->setSamples(xaxis, data, 1000);
+        plot_signal->set_ref_data(number, xaxis, data, 1000);
 
         jabuffer->get_samples(number*2, position - 1000, data, 1000);
-        curve_signal[number]->setSamples(xaxis, data, 1000);
+        plot_signal->set_sig_data(number, xaxis, data, 1000);
     }
 
-    plot_signal->setAxisScale(QwtPlot::yLeft, -1, 1);
     plot_signal->replot();
 
 
@@ -658,11 +535,10 @@ void MainWindow::update_timer_event()
             for (int i = 0; i < N; i++)
                 if (std::isnan(ir[i]))
                     std::cout << "NAN3" << std::endl;
-            curve_ir[number]->setSamples(ir, N);
+            plot_ir->set_ir_data(number, nullptr, ir, N);
             double window[N];
             asa[number]->get_window_vals(window, N);
-            curve_window_ir[number]->setSamples(window, N);
-            plot_ir->setAxisScale(QwtPlot::yLeft, -1, 1);
+            plot_ir->set_window_data(number, nullptr, window, N);
             plot_ir->replot();
 
 
@@ -673,32 +549,30 @@ void MainWindow::update_timer_event()
             double fr_freq[Nf];
             for (int i = 0; i < Nf; i++){
                 fr_freq[i] = i * jabuffer->get_fs() / Nf;
-                //std::cout << "base: " << fr_freq[i] << std::endl;
             }
             asa[number]->get_freq_resp_db(fr, Nf);
             asa[number]->get_phase(phase, Nf);
             asa[number]->get_groupdelay(groupdelay, Nf);
             asa[number]->get_mscohere(mscohere, Nf);
             if (asa[number]->get_freq_smooting() == 0) {
-                //std::cout << "low_freq: " << fr_freq[1] << ", " << fr[1] << std::endl;
-                curve_freqResp[number]->setSamples(&fr_freq[1], &fr[1], round(Nf/2) -1);
-                curve_phaseResp[number]->setSamples(&fr_freq[1], &phase[1], round(Nf/2) -1);
-                curve_groupdelay[number]->setSamples(&fr_freq[1], &groupdelay[1], round(Nf/2) -1);
-                curve_mscohere[number]->setSamples(&fr_freq[1], &mscohere[1], round(Nf/2) -1);
+                plot_freqResp->set_magn_data(number, &fr_freq[1], &fr[1], round(Nf/2) -1);
+                plot_freqResp->set_phase_data(number, &fr_freq[1], &phase[1], round(Nf/2) -1);
+                plot_freqResp->set_groupdelay_data(number, &fr_freq[1], &groupdelay[1], round(Nf/2) -1);
+                plot_freqResp->set_mscohere_data(number, &fr_freq[1], &mscohere[1], round(Nf/2) -1);
             }
             else {
                 std::vector<double> tmp_data;
                 std::vector<double> tmp_freq;
-                tmp_data = asa[number]->get_smfreq_resp_db();
                 tmp_freq = asa[number]->get_smfreq();
                 int len = tmp_freq.size();
-                curve_freqResp[number]->setSamples(tmp_freq.data(), tmp_data.data(), len);
+                tmp_data = asa[number]->get_smfreq_resp_db();
+                plot_freqResp->set_magn_data(number, tmp_freq.data(), tmp_data.data(), len);
                 tmp_data = asa[number]->get_smphase();
-                curve_phaseResp[number]->setSamples(tmp_freq.data(), tmp_data.data(), len);
+                plot_freqResp->set_phase_data(number, tmp_freq.data(), tmp_data.data(), len);
                 tmp_data = asa[number]->get_smgroupdelay();
-                curve_groupdelay[number]->setSamples(tmp_freq.data(), tmp_data.data(), len);
+                plot_freqResp->set_groupdelay_data(number, tmp_freq.data(), tmp_data.data(), len);
                 tmp_data = asa[number]->get_smmscohere();
-                curve_mscohere[number]->setSamples(tmp_freq.data(), tmp_data.data(), len);
+                plot_freqResp->set_mscohere_data(number, tmp_freq.data(), tmp_data.data(), len);
             }
             plot_freqResp->replot();
 
@@ -712,20 +586,20 @@ void MainWindow::update_timer_event()
     {
         if (channels_check_show[i]->isChecked()){
             if (ui->checkBox_showMeas->isChecked())
-                curve_signal[i]->show();
+                plot_signal->set_visible_sig(i, true);
             if (ui->checkBox_showRef->isChecked())
-                curve_ref[i]->show();
-            curve_ir[i]->show();
+                plot_signal->set_visible_ref(i, true);
+            plot_ir->set_visible_ir(i, true);
             if (ui->checkBox_showWindowIR->isChecked())
-                curve_window_ir[i]->show();
+                plot_ir->set_visible_window(i, true);
             if (ui->checkBox_showFreqAmp->isChecked())
-                curve_freqResp[i]->show();
+                plot_freqResp->set_visible_magn(i, true);
             if (ui->checkBox_showFreqPhase->isChecked())
-                curve_phaseResp[i]->show();
+                plot_freqResp->set_visible_phase(i, true);
             if (ui->checkBox_showGroupdelay->isChecked())
-                curve_groupdelay[i]->show();
+                plot_freqResp->set_visible_groupdelay(i, true);
             if (ui->checkBox_showMSCohere->isChecked())
-                curve_mscohere[i]->show();
+                plot_freqResp->set_visible_mscohere(i, true);
         }
     }
 
@@ -882,48 +756,6 @@ void MainWindow::setWindow_clicked()
     }
 }
 
-
-
-QColor MainWindow::get_color(int index, int type)
-{
-    int color_line0[3] = {0, 0, 255};
-    int color_line1[3] = {255, 0, 0};
-    int color_line2[3] = {0, 0, 0};
-    int color_line3[3] = {127, 127, 0};
-
-    int r, g, b;
-
-    switch (index) {
-    case 1:
-        r = color_line1[0];
-        g = color_line1[1];
-        b = color_line1[2];
-        break;
-    case 2:
-        r = color_line2[0];
-        g = color_line2[1];
-        b = color_line2[2];
-        break;
-    case 3:
-        r = color_line3[0];
-        g = color_line3[1];
-        b = color_line3[2];
-        break;
-    default:  // case 0 and else
-        r = color_line0[0];
-        g = color_line0[1];
-        b = color_line0[2];
-        break;
-    }
-
-    if (type == 1){
-        r = static_cast<int>((r+255)/2);
-        g = static_cast<int>((g+255)/2);
-        b = static_cast<int>((b+255)/2);
-    }
-
-    return QColor(r,g,b);
-}
 
 void MainWindow::update_statusbar()
 {

@@ -30,6 +30,9 @@ SOURCES += \
     jaudiobuffer.cpp \
     main.cpp \
     mainwindow.cpp \
+    plotfreqresp.cpp \
+    plotir.cpp \
+    plotsignal.cpp \
     windowfunc.cpp
 
 HEADERS += \
@@ -37,6 +40,9 @@ HEADERS += \
     config.h \
     jaudiobuffer.h \
     mainwindow.h \
+    plotfreqresp.h \
+    plotir.h \
+    plotsignal.h \
     windowfunc.h
 
 FORMS += \

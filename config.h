@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "qcolor.h"
 
 #define NUM_SYSTEMS 4
 
@@ -20,5 +21,7 @@ extern std::vector<std::string> list_sysident_methods;
 extern int config_sysident_TDMMSE;
 extern int config_sysident_DUALFFT;
 extern int config_stdindex_sysident_methods;
+
+extern QColor get_color(int index, int type);
 
 #endif // CONFIG_H

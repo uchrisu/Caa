@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>840</width>
+    <width>1000</width>
     <height>622</height>
    </rect>
   </property>
@@ -31,6 +31,39 @@
            <layout class="QVBoxLayout" name="verticalLayout_signal">
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_3">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomSignalIn">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>+</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomSignalOut">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
               <item>
                <widget class="QCheckBox" name="checkBox_showMeas">
                 <property name="text">
@@ -67,6 +100,39 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_4">
               <item>
+               <layout class="QVBoxLayout" name="verticalLayout_2">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomIRIn">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>+</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomIROut">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
                <widget class="QCheckBox" name="checkBox_showWindowIR">
                 <property name="text">
                  <string>Show Windows</string>
@@ -88,6 +154,39 @@
            <layout class="QVBoxLayout" name="verticalLayout_freqResp">
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_3">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomFreqLeftIn">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>+</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomFreqLeftOut">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
               <item>
                <widget class="QCheckBox" name="checkBox_showFreqAmp">
                 <property name="text">
@@ -125,6 +224,39 @@
               <item>
                <widget class="QComboBox" name="comboBox_freqSmoothing"/>
               </item>
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_4">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomFreqRightIn">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>+</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton_zoomFreqRightOut">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>-</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
              </layout>
             </item>
            </layout>
@@ -152,7 +284,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>840</width>
+     <width>1000</width>
      <height>24</height>
     </rect>
    </property>
@@ -161,4 +293,7 @@
  </widget>
  <resources/>
  <connections/>
+ <slots>
+  <slot>slot1()</slot>
+ </slots>
 </ui>
