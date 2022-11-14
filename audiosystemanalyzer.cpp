@@ -7,6 +7,8 @@
 #include <iostream>
 #include "config.h"
 
+static std::mutex fftw_mtx;
+
 
 AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
 {
@@ -26,7 +28,6 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
     this->calculation_done = false;
 
     this->end_position = 0;
-    this->L = 0;
 
     this->audiobuffer = buffer;
     this->additional_offset = 0;
@@ -74,6 +75,9 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
 
     calc_result_N = calc_result_L = calc_result_Nf = 0;
 
+    N = Nf = L = system_delay = additional_offset = -1;
+    expTimeSmoothFactor = - 1.0;
+    steps_per_octave = -1;
 
     set_filterlength(STANDARD_FILTERLENGTH);
     set_freq_length(STANDARD_FILTERLENGTH);
@@ -81,7 +85,10 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
     set_freq_smooting(0);
     set_expTimeSmoothFactor(0.0);
 
-
+    next_sysident_window_type = windowfunc::type_rectangular;
+    next_window_length = 2*STANDARD_FILTERLENGTH;
+    next_window_offset = -STANDARD_FILTERLENGTH;
+    next_window_type = windowfunc::type_rectangular;
 
     calc_thread = new std::thread(&AudioSystemAnalyzer::calc_thread_fun, this);
 
@@ -175,27 +182,22 @@ AudioSystemAnalyzer::~AudioSystemAnalyzer()
 
 void AudioSystemAnalyzer::set_delay(int delay)
 {
-    this->system_delay = delay;
+    next_delay = delay;
 }
 
 void AudioSystemAnalyzer::set_offset(int offset)
 {
-    this->additional_offset = offset;
+    next_offset = offset;
 }
+
 
 void AudioSystemAnalyzer::set_filterlength(int len)
 {
-    while (true){
-        if (calc_mtx.try_lock()){
-            if (in_calculation){
-                calc_mtx.unlock();
-            }
-            else {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
+    next_filterlength = len;
+}
+
+void AudioSystemAnalyzer::int_set_filterlength(int len)
+{
 
     this->N = len;
 
@@ -205,6 +207,8 @@ void AudioSystemAnalyzer::set_filterlength(int len)
 
     for (int i = 0; i < len; i++)
         this->h[i] = 0.0;
+
+    fftw_mtx.lock();
 
     if (dualfft_in != nullptr)
         fftw_free(dualfft_in);
@@ -242,6 +246,8 @@ void AudioSystemAnalyzer::set_filterlength(int len)
         fftw_destroy_plan(plan_dualfft_out);
     plan_dualfft_out = fftw_plan_dft_c2r_1d(N, dualfft_fy, dualfft_out, FFTW_ESTIMATE);
 
+    fftw_mtx.unlock();
+
 
     window->set_window_length(2*N);
     window->set_window_offset(-N);
@@ -251,23 +257,19 @@ void AudioSystemAnalyzer::set_filterlength(int len)
 
     calculation_done = false;
     calc_result_N = 0;
-    calc_mtx.unlock();
+
 
 }
 
+
 void AudioSystemAnalyzer::set_freq_length(int len)
 {
-    while (true){
-        if (calc_mtx.try_lock()){
-            if (in_calculation){
-                calc_mtx.unlock();
-            }
-            else {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
+    next_freq_length = len;
+}
+
+
+void AudioSystemAnalyzer::int_set_freq_length(int len)
+{
 
     this->Nf = len;
     mscohere_window->set_window_length(Nf);
@@ -284,6 +286,8 @@ void AudioSystemAnalyzer::set_freq_length(int len)
         delete[] groupdelay;
     groupdelay = new double[len];
 
+    fftw_mtx.lock();
+
     if (this->f_h != nullptr)
         fftw_free(f_h);
     f_h = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * len);
@@ -298,23 +302,26 @@ void AudioSystemAnalyzer::set_freq_length(int len)
 
     if (mscohere_fft_in != nullptr)
         fftw_free(mscohere_fft_in);
-    mscohere_fft_in = (double *) fftw_malloc(sizeof(double) * Nf);
+    mscohere_fft_in = (double *) fftw_malloc(sizeof(double) * len);
     if (mscohere_fft_outx != nullptr)
         fftw_free(mscohere_fft_outx);
-    mscohere_fft_outx = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * Nf);
+    mscohere_fft_outx = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * len);
     if (mscohere_fft_outy != nullptr)
         fftw_free(mscohere_fft_outy);
-    mscohere_fft_outy = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * Nf);
+    mscohere_fft_outy = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * len);
+
     if (plan_mscohere_x != nullptr)
         fftw_destroy_plan(plan_mscohere_x);
-    plan_mscohere_x = fftw_plan_dft_r2c_1d(Nf, mscohere_fft_in, mscohere_fft_outx, FFTW_ESTIMATE);
+    plan_mscohere_x = fftw_plan_dft_r2c_1d(len, mscohere_fft_in, mscohere_fft_outx, FFTW_ESTIMATE);
     if (plan_mscohere_y != nullptr)
         fftw_destroy_plan(plan_mscohere_y);
-    plan_mscohere_y = fftw_plan_dft_r2c_1d(Nf, mscohere_fft_in, mscohere_fft_outy, FFTW_ESTIMATE);
+    plan_mscohere_y = fftw_plan_dft_r2c_1d(len, mscohere_fft_in, mscohere_fft_outy, FFTW_ESTIMATE);
+
+    fftw_mtx.unlock();
 
     if (mscohere != nullptr)
         delete[] mscohere;
-    mscohere = new double[Nf];
+    mscohere = new double[len];
 
 
     for (int i = 0; i < len; i++){
@@ -327,22 +334,17 @@ void AudioSystemAnalyzer::set_freq_length(int len)
     }
     calculation_done = false;
     calc_result_Nf = 0;
-    calc_mtx.unlock();
 }
+
 
 void AudioSystemAnalyzer::set_analyze_length(int len)
 {
-    while (true){
-        if (calc_mtx.try_lock()){
-            if (in_calculation){
-                calc_mtx.unlock();
-            }
-            else {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
+    next_analyze_length = len;
+}
+
+
+void AudioSystemAnalyzer::int_set_analyze_length(int len)
+{
 
     this->L = len;
 
@@ -357,6 +359,8 @@ void AudioSystemAnalyzer::set_analyze_length(int len)
     y = new float[len];
 
     // correlation for identify ir
+
+    fftw_mtx.lock();
 
     if (data_corr_in != nullptr)
         fftw_free(data_corr_in);
@@ -417,29 +421,24 @@ void AudioSystemAnalyzer::set_analyze_length(int len)
         fftw_destroy_plan(plan_delay_out);
     plan_delay_out = fftw_plan_dft_c2r_1d(2*L, f_delay1, data_delay_out, FFTW_ESTIMATE);
 
+    fftw_mtx.unlock();
+
     calculation_done = false;
     calc_result_L = 0;
-    calc_mtx.unlock();
 }
 
 
 void AudioSystemAnalyzer::set_freq_smooting(int steps_per_octave)
 {
-    while (true){
-        if (calc_mtx.try_lock()){
-            if (in_calculation){
-                calc_mtx.unlock();
-            }
-            else {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
+    next_freq_smooting = steps_per_octave;
+}
+
+
+void AudioSystemAnalyzer::int_set_freq_smooting(int steps_per_octave)
+{
 
     this->steps_per_octave = steps_per_octave;
     if (steps_per_octave <= 0){
-        calc_mtx.unlock();
         return;
     }
     int len = 10*steps_per_octave+1;
@@ -463,12 +462,11 @@ void AudioSystemAnalyzer::set_freq_smooting(int steps_per_octave)
         fsmooth_groupdelay[i] = 0.0;
         fsmooth_mscohere[i] = 0.0;
     }
-    calc_mtx.unlock();
 }
 
 void AudioSystemAnalyzer::set_sysident_method(int method)
 {
-    sysident_method = method;
+    next_sysident_method = method;
 }
 
 void AudioSystemAnalyzer::set_expTimeSmoothFactor(double factor)
@@ -478,19 +476,8 @@ void AudioSystemAnalyzer::set_expTimeSmoothFactor(double factor)
         fac = 0.0;
     if (fac > 1)
         fac = 1.0;
-    while (true){
-        if (calc_mtx.try_lock()){
-            if (in_calculation){
-                calc_mtx.unlock();
-            }
-            else {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
-    expTimeSmoothFactor = fac;
-    calc_mtx.unlock();
+
+    next_expTimeSmoothFactor = fac;
 }
 
 int AudioSystemAnalyzer::get_freq_smooting()
@@ -526,7 +513,6 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
 
     audiobuffer->get_samples(index * 2, pos_ref, x, L);
     audiobuffer->get_samples(index * 2 + 1, pos_sig, y, L);
-
 
     if (sysident_method == config_sysident_TDMMSE){
 
@@ -795,6 +781,8 @@ int AudioSystemAnalyzer::int_calc_phase()
 
 int AudioSystemAnalyzer::int_calc_mscohere()
 {
+    // inspired by octave signal processing toolbox
+
     if (Nf < 1)
         return -1;
 
@@ -809,7 +797,7 @@ int AudioSystemAnalyzer::int_calc_mscohere()
         Pyy_re[i] = 0.0;
     }
 
-    for (int seg_start = 0; seg_start < (L - Nf); seg_start += Nf / 2){
+    for (int seg_start = 0; seg_start <= (L - Nf); seg_start += Nf / 2){  // + 1
         for (int i = 0; i < Nf; i++){
             mscohere_fft_in[i] = mscohere_window->get_factor(i) * x[seg_start + i];
         }
@@ -819,7 +807,7 @@ int AudioSystemAnalyzer::int_calc_mscohere()
         }
         fftw_execute(plan_mscohere_y);
         // Pxy = Pxy + fft_y .* conj(fft_x);
-        for (int i = 0; i < Nf; i++){
+        for (int i = 0; i <= Nf / 2; i++){
             Pxy_re[i] += mscohere_fft_outx[i][0] * mscohere_fft_outy[i][0];
             Pxy_re[i] += mscohere_fft_outx[i][1] * mscohere_fft_outy[i][1];
             Pxy_im[i] += mscohere_fft_outx[i][0] * mscohere_fft_outy[i][1];
@@ -830,7 +818,7 @@ int AudioSystemAnalyzer::int_calc_mscohere()
             Pyy_re[i] += mscohere_fft_outy[i][1] * mscohere_fft_outy[i][1];
         }
     }
-    for (int i = 1; i < Nf / 2; i++) {
+   /* for (int i = 1; i < (Nf / 2); i++) {
         Pxy_re[i] += Pxy_re[Nf-i];
         Pxy_im[i] -= Pxy_im[Nf-i];
         Pxy_re[Nf-i] = Pxy_re[i];
@@ -839,7 +827,7 @@ int AudioSystemAnalyzer::int_calc_mscohere()
         Pxx_re[Nf-i] = Pxx_re[i];
         Pyy_re[i] += Pyy_re[Nf-i];
         Pyy_re[Nf-i] = Pyy_re[i];
-    }
+    }*/
 
     for (int i = 0; i < Nf; i ++){
         double nom = Pxy_re[i] * Pxy_re[i] + Pxy_im[i] * Pxy_im[i];
@@ -1144,25 +1132,26 @@ std::vector<double> AudioSystemAnalyzer::get_smmscohere()
 
 void AudioSystemAnalyzer::set_sysident_window_type(int wintype)
 {
-    sysident_window->set_window_type(wintype);
+    next_sysident_window_type = wintype;
 }
 
 void AudioSystemAnalyzer::set_window_length(int length)
 {
     if (length <= 0)
-        window->set_window_length(2*N);
+        next_window_length = 2*N;
     else
-        window->set_window_length(2*length);
+        next_window_length = 2*length;
+
 }
 
 void AudioSystemAnalyzer::set_window_offset(int offset)
 {
-    window->set_window_offset(offset-window->get_window_length()/2);
+    next_window_offset = offset-next_window_length/2;
 }
 
 void AudioSystemAnalyzer::set_window_type(int wintype)
 {
-    window->set_window_type(wintype);
+    next_window_type = wintype;
 }
 
 void AudioSystemAnalyzer::get_window_vals(double *vals, int length)
@@ -1315,6 +1304,25 @@ void AudioSystemAnalyzer::calc_thread_fun()
 {
     while (!shutdown){
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+        // Update parameters:
+        this->system_delay = next_delay;
+        this->additional_offset = next_offset;
+        if (N != next_filterlength)
+            int_set_filterlength(next_filterlength);
+        if (Nf != next_freq_length)
+            int_set_freq_length(next_freq_length);
+        if (L != next_analyze_length)
+            int_set_analyze_length(next_analyze_length);
+        if (steps_per_octave != next_freq_smooting)
+            int_set_freq_smooting(next_freq_smooting);
+        this->sysident_method = next_sysident_method;
+        this->expTimeSmoothFactor = next_expTimeSmoothFactor;
+        sysident_window->set_window_type(next_sysident_window_type);
+        window->set_window_length(next_window_length);
+        window->set_window_offset(next_window_offset);
+        window->set_window_type(next_window_type);
+
         if (start_calculation){
             calculation_done = false;
             start_calculation = false;

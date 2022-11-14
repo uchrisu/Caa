@@ -367,8 +367,8 @@ MainWindow::~MainWindow()
     delete plot_freqResp;
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
-        delete channels_tabs[i];
-        delete channels_layouts[i];
+      /*  delete channels_tabs[i];
+        //delete channels_layouts[i];
         delete channels_check_show[i];
         delete channels_sysident_method[i];
         delete channels_sel_sysident_method[i];
@@ -398,7 +398,7 @@ MainWindow::~MainWindow()
         delete channels_edit_WindowOffset[i];
         delete channels_button_WindowSet[i];
         delete channels_spacer1[i];
-        delete channels_check_update[i];
+        delete channels_check_update[i];*/
     }
 
     delete channels_tabs;

@@ -8,7 +8,7 @@
 #include "config.h"
 
 
-#define BUFFER_AUDIO_LENGTH 200000
+#define BUFFER_AUDIO_LENGTH 300000
 
 
 JAudioBuffer::JAudioBuffer()

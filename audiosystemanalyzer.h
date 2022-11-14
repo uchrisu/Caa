@@ -82,8 +82,13 @@ private:
 
     void calc_thread_fun();
 
+    void int_set_filterlength(int len);
+    void int_set_freq_length(int len);
+    void int_set_analyze_length(int len);
+    void int_set_freq_smooting(int steps_per_octave);
+
     int index;
-    std::atomic<int> sysident_method;
+    int sysident_method;
 
     JAudioBuffer *audiobuffer;
     windowfunc *window, *sysident_window, *mscohere_window;
@@ -154,6 +159,21 @@ private:
 
     std::atomic<int> calc_time_full;
     std::atomic<int> calc_time_identify;
+
+    // new desired values (active in next calc loop):
+
+    std::atomic<int> next_delay;
+    std::atomic<int> next_offset;
+    std::atomic<int> next_filterlength;
+    std::atomic<int> next_freq_length;
+    std::atomic<int> next_analyze_length;
+    std::atomic<int> next_freq_smooting;
+    std::atomic<int> next_sysident_method;
+    std::atomic<double> next_expTimeSmoothFactor;
+    std::atomic<int> next_sysident_window_type;
+    std::atomic<int> next_window_length;
+    std::atomic<int> next_window_offset;
+    std::atomic<int> next_window_type;
 
 
 };
