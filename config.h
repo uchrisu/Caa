@@ -5,22 +5,22 @@
 #include <vector>
 #include "qcolor.h"
 
-#define NUM_SYSTEMS 4
+extern const int NUM_SYSTEMS;
 
-extern std::vector<int> list_lengths_N;
-extern std::vector<int> list_lengths_L;
-extern std::vector<int> list_lengths_Nf;
-extern std::vector<int> list_smoothing_per_oct;
+extern const std::vector<int> list_lengths_N;
+extern const std::vector<int> list_lengths_L;
+extern const std::vector<int> list_lengths_Nf;
+extern const std::vector<int> list_smoothing_per_oct;
 
-extern int config_stdindex_N;
-extern int config_stdindex_L;
-extern int config_stdindex_Nf;
+extern const int config_stdindex_N;
+extern const int config_stdindex_L;
+extern const int config_stdindex_Nf;
 
 
-extern std::vector<std::string> list_sysident_methods;
-extern int config_sysident_TDMMSE;
-extern int config_sysident_DUALFFT;
-extern int config_stdindex_sysident_methods;
+extern const std::vector<std::string> list_sysident_methods;
+extern const int config_sysident_TDMSE_T;
+extern const int config_sysident_DUALFFT;
+extern const int config_stdindex_sysident_methods;
 
 extern QColor get_color(int index, int type);
 

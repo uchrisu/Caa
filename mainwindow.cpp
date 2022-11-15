@@ -547,18 +547,16 @@ void MainWindow::update_timer_event()
             double groupdelay[Nf];
             double mscohere[Nf];
             double fr_freq[Nf];
-            for (int i = 0; i < Nf; i++){
-                fr_freq[i] = i * jabuffer->get_fs() / Nf;
-            }
+            asa[number]->get_freq(fr_freq, Nf);
             asa[number]->get_freq_resp_db(fr, Nf);
             asa[number]->get_phase(phase, Nf);
             asa[number]->get_groupdelay(groupdelay, Nf);
             asa[number]->get_mscohere(mscohere, Nf);
             if (asa[number]->get_freq_smooting() == 0) {
-                plot_freqResp->set_magn_data(number, &fr_freq[1], &fr[1], round(Nf/2) -1);
-                plot_freqResp->set_phase_data(number, &fr_freq[1], &phase[1], round(Nf/2) -1);
-                plot_freqResp->set_groupdelay_data(number, &fr_freq[1], &groupdelay[1], round(Nf/2) -1);
-                plot_freqResp->set_mscohere_data(number, &fr_freq[1], &mscohere[1], round(Nf/2) -1);
+                plot_freqResp->set_magn_data(number, &fr_freq[1], &fr[1], Nf - 1);
+                plot_freqResp->set_phase_data(number, &fr_freq[1], &phase[1], Nf - 1);
+                plot_freqResp->set_groupdelay_data(number, &fr_freq[1], &groupdelay[1], Nf - 1);
+                plot_freqResp->set_mscohere_data(number, &fr_freq[1], &mscohere[1], Nf - 1);
             }
             else {
                 std::vector<double> tmp_data;

@@ -75,7 +75,7 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
 
     calc_result_N = calc_result_L = calc_result_Nf = 0;
 
-    N = Nf = L = system_delay = additional_offset = -1;
+    N = Nf = Nf_real = L = system_delay = additional_offset = -1;
     expTimeSmoothFactor = - 1.0;
     steps_per_octave = -1;
 
@@ -272,19 +272,20 @@ void AudioSystemAnalyzer::int_set_freq_length(int len)
 {
 
     this->Nf = len;
+    Nf_real = Nf/2 + 1;
     mscohere_window->set_window_length(Nf);
 
     if (this->phase != nullptr)
         delete[] phase;
-    phase = new double[len];
+    phase = new double[Nf_real];
 
     if (this->phase_unwrapped != nullptr)
         delete[] phase_unwrapped;
-    phase_unwrapped = new double[len];
+    phase_unwrapped = new double[Nf_real];
 
     if (this->groupdelay != nullptr)
         delete[] groupdelay;
-    groupdelay = new double[len];
+    groupdelay = new double[Nf_real];
 
     fftw_mtx.lock();
 
@@ -321,12 +322,14 @@ void AudioSystemAnalyzer::int_set_freq_length(int len)
 
     if (mscohere != nullptr)
         delete[] mscohere;
-    mscohere = new double[len];
+    mscohere = new double[Nf_real];
 
-
-    for (int i = 0; i < len; i++){
+    for (int i = 0; i < Nf; i++){
         this->f_h[i][0] = 0.0;
         this->f_h[i][1] = 0.0;
+    }
+
+    for (int i = 0; i < Nf_real; i++){
         this->phase[i] = 0.0;
         this->phase_unwrapped[i] = 0.0;
         this->groupdelay[i] = 0.0;
@@ -514,7 +517,7 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
     audiobuffer->get_samples(index * 2, pos_ref, x, L);
     audiobuffer->get_samples(index * 2 + 1, pos_sig, y, L);
 
-    if (sysident_method == config_sysident_TDMMSE){
+    if (sysident_method == config_sysident_TDMSE_T){
 
         //    int start = N - 1;
         double *toprow = new double[N];
@@ -660,6 +663,21 @@ int AudioSystemAnalyzer::get_impulse_response(double *ir, int len)
     return num;
 }
 
+int AudioSystemAnalyzer::get_freq(double *fr, int len)
+{
+    if (!calc_mtx.try_lock())
+        return ASA_RETURN_BUSY;
+    int Nfc = (calc_result_Nf - 1) * 2;
+    int fs = audiobuffer->get_fs();
+    for (int i = 0; i < len; i++){
+        fr[i] = i * fs / static_cast<double>(Nfc);
+    }
+
+    calc_mtx.unlock();
+
+    return len;
+}
+
 
 int AudioSystemAnalyzer::int_calc_freq_resp()
 {
@@ -745,7 +763,7 @@ int AudioSystemAnalyzer::identify_delay(int64_t end_position)
 
     calc_mtx.unlock();
 
-    return max_pos - L + 1;
+    return max_pos - L + 2;
 }
 
 int AudioSystemAnalyzer::int_calc_phase()
@@ -756,7 +774,7 @@ int AudioSystemAnalyzer::int_calc_phase()
     phase[0] = atan2(f_h[0][1], f_h[0][0]);
     phase_unwrapped[0] = phase[0];
     double offset = 0.0;
-    for (int i = 1; i < Nf; i++){
+    for (int i = 1; i < Nf_real; i++){
         phase[i] = atan2(f_h[i][1], f_h[i][0]); // + 2 * M_PI * i * additional_offset / Nf;
         phase[i] = fmod((phase[i] + M_PI), 2*M_PI) - M_PI;
         double tmp = phase[i] + offset;
@@ -772,10 +790,10 @@ int AudioSystemAnalyzer::int_calc_phase()
     }
     double dw = static_cast<double>(audiobuffer->get_fs()) / Nf * 2 * M_PI;
     groupdelay[0] = 1000 * (phase_unwrapped[1] - phase_unwrapped[0]) / dw;
-    for (int i = 1; i < (Nf - 1); i++){
+    for (int i = 1; i < (Nf_real - 1); i++){
         groupdelay[i] = - 1000 * (phase_unwrapped[i+1] - phase_unwrapped[i-1]) / (2 * dw);
     }
-    groupdelay[Nf - 1] = 1000 * (phase_unwrapped[Nf -1] - phase_unwrapped[Nf - 2]) / dw;
+    groupdelay[Nf_real - 1] = 1000 * (phase_unwrapped[Nf_real -1] - phase_unwrapped[Nf_real - 2]) / dw;
     return 0;
 }
 
@@ -818,7 +836,7 @@ int AudioSystemAnalyzer::int_calc_mscohere()
             Pyy_re[i] += mscohere_fft_outy[i][1] * mscohere_fft_outy[i][1];
         }
     }
-   /* for (int i = 1; i < (Nf / 2); i++) {
+    for (int i = 1; i < (Nf / 2); i++) {
         Pxy_re[i] += Pxy_re[Nf-i];
         Pxy_im[i] -= Pxy_im[Nf-i];
         Pxy_re[Nf-i] = Pxy_re[i];
@@ -827,9 +845,9 @@ int AudioSystemAnalyzer::int_calc_mscohere()
         Pxx_re[Nf-i] = Pxx_re[i];
         Pyy_re[i] += Pyy_re[Nf-i];
         Pyy_re[Nf-i] = Pyy_re[i];
-    }*/
+    }
 
-    for (int i = 0; i < Nf; i ++){
+    for (int i = 0; i < Nf_real; i ++){
         double nom = Pxy_re[i] * Pxy_re[i] + Pxy_im[i] * Pxy_im[i];
         double den = Pxx_re[i] * Pyy_re[i];
         if (std::abs(den) > 0)
@@ -855,14 +873,14 @@ int AudioSystemAnalyzer::int_calc_smooth()
     double fs = audiobuffer->get_fs();
     double offset = 0.0;
     for (int i = 0; i < len; i++){
-        if (fpos >= Nf) 
+        if (fpos >= Nf_real)
             break;
         double lim1 = 20*std::pow(2, (i-0.5)/steps_per_octave);
         double lim2 = 20*std::pow(2, (i+0.5)/steps_per_octave);
         while((static_cast<double>(fpos)/Nf*fs) < lim1){
             fpos++;
         }
-        if (fpos >= Nf) 
+        if (fpos >= Nf_real)
             break;
         sum_i = sum_re = sum_im = 0;
         msc = 1.0;
@@ -874,7 +892,7 @@ int AudioSystemAnalyzer::int_calc_smooth()
             if (mscohere[fpos] < msc)
                 msc = mscohere[fpos];
             fpos++;
-             if (fpos >= Nf) 
+            if (fpos >= Nf_real)
                 break;
         }
         if (sum_i > 0) {
@@ -884,10 +902,10 @@ int AudioSystemAnalyzer::int_calc_smooth()
         }
         else {
 
-            if (fpos >= Nf) {
-                fsmooth_re[i] = f_h[Nf-1][0];
-                fsmooth_im[i] = f_h[Nf-1][1];
-                fsmooth_mscohere[i] = mscohere[Nf-1];
+            if (fpos >= Nf_real) {
+                fsmooth_re[i] = f_h[Nf_real-1][0];
+                fsmooth_im[i] = f_h[Nf_real-1][1];
+                fsmooth_mscohere[i] = mscohere[Nf_real-1];
             }
             else if (fpos == 0) {
                 fsmooth_re[i] = f_h[0][0];
@@ -1340,7 +1358,7 @@ void AudioSystemAnalyzer::calc_thread_fun()
             }
             calc_result_N = N;
             calc_result_L = L;
-            calc_result_Nf = Nf;
+            calc_result_Nf = Nf_real;
             calculation_done = true;
             in_calculation = false;
 

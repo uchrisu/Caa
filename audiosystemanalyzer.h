@@ -1,8 +1,8 @@
 #ifndef AUDIOSYSTEMANALYZER_H
 #define AUDIOSYSTEMANALYZER_H
 
-#define STANDARD_FILTERLENGTH 4096
-#define STANDARD_ANALYZE_LENGTH 64*1024
+#define STANDARD_FILTERLENGTH list_lengths_N[config_stdindex_N]
+#define STANDARD_ANALYZE_LENGTH list_lengths_L[config_stdindex_L]
 
 #define ASA_RETURN_SUCCESS 0
 #define ASA_RETURN_BUSY -1
@@ -41,6 +41,7 @@ public:
     int result_Nf();
 
     int get_impulse_response(double *ir, int len);
+    int get_freq(double *fr, int len);
     int get_freq_resp(double *fr, int len);
     int get_freq_resp_db(double *fr, int len);
     int get_phase(double *phase, int len);
@@ -95,6 +96,7 @@ private:
 
 
     int N, Nf;
+    int Nf_real;
     int64_t end_position;
     int L;
     int system_delay, additional_offset;
