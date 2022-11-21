@@ -65,6 +65,9 @@ public:
     int get_calc_time_full();
     int get_calc_time_identify();
 
+    int save_impulse_response(char *filename);
+    int load_impulse_response(char *filename);
+
 
 private:
 

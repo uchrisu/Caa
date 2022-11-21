@@ -5,6 +5,7 @@
 #include <qwt_scale_engine.h>
 #include "config.h"
 #include "windowfunc.h"
+#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -308,14 +309,49 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
 
-
-
     channels_spacer1 = new QSpacerItem*[NUM_SYSTEMS];
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
         channels_spacer1[i] = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
         channels_layouts[i]->addItem(channels_spacer1[i]);
     }
+
+    channels_line5 = new QFrame*[NUM_SYSTEMS];
+
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        channels_line5[i] = new QFrame;
+        channels_line5[i]->setFrameShape(QFrame::HLine);
+        channels_line5[i]->setFrameShadow(QFrame::Sunken);
+        channels_layouts[i]->addWidget(channels_line5[i]);
+    }
+
+    channels_layout_saveLoad = new QHBoxLayout*[NUM_SYSTEMS];
+
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        channels_layout_saveLoad[i] = new QHBoxLayout;
+    }
+
+    channels_button_saveIR = new QPushButton*[NUM_SYSTEMS];
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        channels_button_saveIR[i] = new QPushButton;
+        channels_button_saveIR[i]->setText(QString("Save IR"));
+        connect(channels_button_saveIR[i], SIGNAL(released()), this, SLOT(saveIR_clicked()));
+        channels_layout_saveLoad[i]->addWidget(channels_button_saveIR[i]);
+    }
+
+    channels_button_loadIR = new QPushButton*[NUM_SYSTEMS];
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        channels_button_loadIR[i] = new QPushButton;
+        channels_button_loadIR[i]->setText(QString("Load IR"));
+        connect(channels_button_loadIR[i], SIGNAL(released()), this, SLOT(loadIR_clicked()));
+        channels_layout_saveLoad[i]->addWidget(channels_button_loadIR[i]);
+    }
+
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        channels_layouts[i]->addLayout(channels_layout_saveLoad[i]);
+    }
+
+
 
     channels_check_update = new QCheckBox*[NUM_SYSTEMS];
 
@@ -432,6 +468,10 @@ MainWindow::~MainWindow()
     delete channels_edit_WindowOffset;
     delete channels_button_WindowSet;
     delete channels_spacer1;
+    delete channels_line5;
+    delete channels_layout_saveLoad;
+    delete channels_button_saveIR;
+    delete channels_button_loadIR;
     delete channels_check_update;
 
 
@@ -519,10 +559,6 @@ void MainWindow::update_timer_event()
             continue;
         }
 
-        if (!channels_check_update[number]->isChecked()){
-            continue;
-        }
-
         if (asa[number]->is_calculation_done()){
             int N = asa[number]->result_N();
             //int L = asa[number]->result_L();
@@ -574,6 +610,10 @@ void MainWindow::update_timer_event()
             }
             plot_freqResp->replot();
 
+        }
+
+        if (!channels_check_update[number]->isChecked()){
+            continue;
         }
 
         if (!asa[number]->is_in_calculation())
@@ -751,6 +791,38 @@ void MainWindow::setWindow_clicked()
         std::cout << "System " << sys << ": Window Length: " << len << ", Window Offset: " << offset << std::endl;
         asa[sys]->set_window_length(len);
         asa[sys]->set_window_offset(offset);
+    }
+}
+
+void MainWindow::saveIR_clicked()
+{
+    int sys = -1;
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        if (QObject::sender() == channels_button_saveIR[i])
+            sys = i;
+    }
+    if (sys >= 0){
+        QString filename = QFileDialog::getSaveFileName(this, "Save Impulse Response", nullptr, "Impulse Response (*.wav)");
+        if (!filename.isEmpty()){
+            if (!filename.endsWith(".wav"))
+                filename.append(".wav");
+            asa[sys]->save_impulse_response(filename.toLocal8Bit().data());
+        }
+    }
+
+}
+
+void MainWindow::loadIR_clicked()
+{
+    int sys = -1;
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        if (QObject::sender() == channels_button_loadIR[i])
+            sys = i;
+    }
+    if (sys >= 0){
+        QString filename = QFileDialog::getOpenFileName(this, "Load Impulse Response", nullptr, "Impulse Response (*.wav)");
+        if (!filename.isEmpty())
+            asa[sys]->load_impulse_response(filename.toLocal8Bit().data());
     }
 }
 

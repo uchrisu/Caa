@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 #include "config.h"
+#include <sndfile.h>
 
 static std::mutex fftw_mtx;
 
@@ -1185,6 +1186,69 @@ int AudioSystemAnalyzer::get_calc_time_full()
 int AudioSystemAnalyzer::get_calc_time_identify()
 {
     return calc_time_identify;
+}
+
+int AudioSystemAnalyzer::save_impulse_response(char *filename)
+{
+    SF_INFO sfinfo;
+    memset(&sfinfo, 0, sizeof(sfinfo));
+    sfinfo.samplerate = audiobuffer->get_fs();
+    sfinfo.channels = 1;
+    sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE;
+    SNDFILE *file = sf_open(filename, SFM_WRITE, &sfinfo);
+    if (file == NULL)
+        return -1;
+
+    calc_mtx.lock();
+    sf_write_double(file, h, calc_result_N);
+    calc_mtx.unlock();
+
+    sf_close(file);
+
+    return 0;
+
+}
+
+int AudioSystemAnalyzer::load_impulse_response(char *filename)
+{
+    SF_INFO sfinfo;
+    memset(&sfinfo, 0, sizeof(sfinfo));
+    SNDFILE *file = sf_open(filename, SFM_READ, &sfinfo);
+    if (file == NULL)
+        return -1;
+    if (sfinfo.channels != 1)
+        return -2;
+
+    sf_count_t len = sfinfo.frames;
+    size_t len_ind;
+    for (len_ind = 0; len_ind < list_lengths_N.size(); len_ind++){
+        if (list_lengths_N[len_ind] >= len)
+            break;
+    }
+    if (len_ind >= list_lengths_N.size())
+        len_ind = list_lengths_N.size() - 1;
+
+    calc_mtx.lock();
+    set_filterlength(list_lengths_N[len_ind]);
+    sf_count_t real_len = sf_read_double(file, h, N);
+    for (int i = real_len; i < N; i++)
+        h[i] = 0.0;
+
+    int_calc_freq_resp();
+    int_calc_phase();
+    int_calc_mscohere();
+    int_calc_smooth();
+
+    calc_result_N = N;
+    calc_result_L = N;
+    calc_result_Nf = Nf_real;
+    calculation_done = true;
+
+    calc_mtx.unlock();
+
+    sf_close(file);
+
+    return len_ind;
 }
 
 

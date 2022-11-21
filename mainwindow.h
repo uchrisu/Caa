@@ -52,6 +52,9 @@ private slots:
     void sel_window_changed(int index);
     void setWindow_clicked();
 
+    void saveIR_clicked();
+    void loadIR_clicked();
+
 private:
     void update_statusbar();
 
@@ -97,6 +100,10 @@ private:
     QPushButton **channels_button_WindowSet;
 
     QSpacerItem **channels_spacer1;
+    QFrame **channels_line5;
+    QHBoxLayout **channels_layout_saveLoad;
+    QPushButton **channels_button_saveIR;
+    QPushButton **channels_button_loadIR;
     QCheckBox **channels_check_update;
 
 
