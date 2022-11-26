@@ -5,7 +5,7 @@
 #include <vector>
 #include "qcolor.h"
 
-extern const int NUM_SYSTEMS;
+extern int NUM_SYSTEMS;
 
 extern const std::vector<int> list_lengths_N;
 extern const std::vector<int> list_lengths_L;

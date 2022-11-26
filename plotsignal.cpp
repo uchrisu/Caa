@@ -18,7 +18,7 @@ PlotSignal::PlotSignal()
     grid_signal->setAxes(QwtPlot::xBottom, QwtPlot::yLeft);
     grid_signal->attach(this);
 
-    curve_signal = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_signal.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_signal[i] = new QwtPlotCurve();
         curve_signal[i]->setTitle( "Channel " + QString::number(i) );
@@ -26,7 +26,7 @@ PlotSignal::PlotSignal()
         curve_signal[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
     }
 
-    curve_ref = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_ref.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_ref[i] = new QwtPlotCurve();
         curve_ref[i]->setTitle( "Ref " + QString::number(i) );
@@ -101,6 +101,25 @@ void PlotSignal::zoom_out()
     if (zoom_step < zoom_max)
         zoom_step++;
     rezoom();
+}
+
+void PlotSignal::add_channels(int number)
+{
+    int old_num = curve_signal.size();
+    for (int i = old_num; i < (old_num + number); i++){
+        curve_signal.push_back(new QwtPlotCurve());
+        curve_signal[i]->setTitle( "Channel " + QString::number(i) );
+        curve_signal[i]->setPen( get_color(i,0), 2 ),
+        curve_signal[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+        curve_ref.push_back(new QwtPlotCurve());
+        curve_ref[i]->setTitle( "Ref " + QString::number(i) );
+        curve_ref[i]->setPen( get_color(i,1), 2 ),
+        curve_ref[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+        curve_signal[i]->attach(this);
+        curve_ref[i]->attach(this);
+    }
 }
 
 void PlotSignal::rezoom()

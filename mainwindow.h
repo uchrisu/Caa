@@ -33,10 +33,11 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     void set_buffer(JAudioBuffer *jabuffer);
-    void set_analyzer(AudioSystemAnalyzer **asa);
+    void init_analyzer();
 
 private slots:
     void update_timer_event();
+    void ch_tab_changes(int index);
 
     void sel_freSmooting_changed(int index);
 
@@ -51,15 +52,14 @@ private:
     PlotIR *plot_ir;
     PlotFreqResp *plot_freqResp;
 
-    QWidget **channels_tabs;
-    QVBoxLayout **channels_layouts;
-
-    ChannelConfigWidget **channel_configs;
-
+    std::vector<QWidget *> channels_tabs;
+    std::vector<QVBoxLayout *> channels_layouts;
+    std::vector<ChannelConfigWidget *> channel_configs;
 
     QTimer *updatetimer;
 
     JAudioBuffer *jabuffer;
-    AudioSystemAnalyzer **asa;
+
+    std::vector<AudioSystemAnalyzer *> asa;
 };
 #endif // MAINWINDOW_H

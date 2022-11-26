@@ -91,7 +91,7 @@
      <item>
       <widget class="QPushButton" name="pushButton_SetDelayOffset">
        <property name="text">
-        <string>PushButton</string>
+        <string>Set Delay / Offset</string>
        </property>
       </widget>
      </item>
@@ -222,7 +222,7 @@
      <item>
       <widget class="QPushButton" name="pushButton_SetWindow">
        <property name="text">
-        <string>Set Window Width/Offset</string>
+        <string>Set Window Width / Offset</string>
        </property>
       </widget>
      </item>

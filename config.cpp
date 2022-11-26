@@ -2,7 +2,7 @@
 #include <vector>
 #include "qcolor.h"
 
-extern const int NUM_SYSTEMS = 4;
+int NUM_SYSTEMS = 2;
 
 extern const int config_stdindex_N = 3;
 extern const std::vector<int> list_lengths_N = {512, 1024, 2048, 4096, 8192, 16*1024};

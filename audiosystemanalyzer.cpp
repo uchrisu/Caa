@@ -86,6 +86,9 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
     set_freq_smooting(0);
     set_expTimeSmoothFactor(0.0);
 
+    next_offset = 0;
+    next_delay = 0;
+    next_sysident_method = config_stdindex_sysident_methods;
     next_sysident_window_type = windowfunc::type_rectangular;
     next_window_length = 2*STANDARD_FILTERLENGTH;
     next_window_offset = -STANDARD_FILTERLENGTH;

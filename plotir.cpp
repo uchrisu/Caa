@@ -19,7 +19,7 @@ PlotIR::PlotIR()
     grid_ir->setAxes(QwtPlot::xBottom, QwtPlot::yLeft);
     grid_ir->attach(this);
 
-    curve_ir = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_ir.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_ir[i] = new QwtPlotCurve();
         curve_ir[i]->setTitle( QString("Ch. ") + QString::number(i+1)  );
@@ -27,7 +27,7 @@ PlotIR::PlotIR()
         curve_ir[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
     }
 
-    curve_window_ir = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_window_ir.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_window_ir[i] = new QwtPlotCurve();
         curve_window_ir[i]->setTitle( "Window" );
@@ -96,6 +96,25 @@ void PlotIR::set_visible_window(int channel, bool state)
         curve_window_ir[channel]->show();
     else
         curve_window_ir[channel]->hide();
+}
+
+void PlotIR::add_channels(int number)
+{
+    int old_num = curve_ir.size();
+    for (int i = old_num; i < (old_num + number); i++){
+        curve_ir.push_back(new QwtPlotCurve());
+        curve_ir[i]->setTitle( QString("Ch. ") + QString::number(i+1)  );
+        curve_ir[i]->setPen( get_color(i,0), 2 ),
+        curve_ir[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+        curve_ir[i]->attach(this);
+
+        curve_window_ir.push_back(new QwtPlotCurve());
+        curve_window_ir[i]->setTitle( "Window" );
+        curve_window_ir[i]->setPen( get_color(i,0), 2 ),
+        curve_window_ir[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+        curve_window_ir[i]->attach(this);
+    }
+
 }
 
 void PlotIR::zoom_in()

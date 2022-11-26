@@ -17,8 +17,8 @@ JAudioBuffer::JAudioBuffer()
     started = false;
     num_channels = 2*NUM_SYSTEMS;
     buffer_size = BUFFER_AUDIO_LENGTH;
-    input_ports = new jack_port_t*[num_channels];
-    buffer = new float*[num_channels];
+    input_ports.resize(num_channels);
+    buffer.resize(num_channels);
     for (int i = 0; i < num_channels; i++){
         buffer[i] = new float[buffer_size];
         for (int j = 0; j < buffer_size; j++){
@@ -30,11 +30,9 @@ JAudioBuffer::JAudioBuffer()
 JAudioBuffer::~JAudioBuffer()
 {
     stop();
-    delete input_ports;
     for (int i = 0; i < num_channels; i++){
         delete buffer[i];
     }
-    delete buffer;
 }
 
 int JAudioBuffer::start(JackProcessCallback process_helper)
@@ -64,9 +62,9 @@ int JAudioBuffer::start(JackProcessCallback process_helper)
         std::ostringstream tmpstream;
 
         if (i%2 == 0)
-            tmpstream << std::setw(1) << std::setfill('0') << i/2 << "_ref";
+            tmpstream << std::setw(1) << std::setfill('0') << i/2 + 1 << "_ref";
         else
-            tmpstream << std::setw(1) << std::setfill('0') << i/2 << "_meas" ;
+            tmpstream << std::setw(1) << std::setfill('0') << i/2 + 1 << "_meas" ;
 
         input_ports[i] = jack_port_register (client, tmpstream.str().c_str(), JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
         if (input_ports[i] == NULL) {
@@ -166,4 +164,33 @@ void JAudioBuffer::get_samples(int channel, int64_t start, float *dest, int num)
 
         }
     }
+}
+
+int JAudioBuffer::add_channels(int number)
+{
+    int res = 0;
+    for (int i = 0; i < number; i++){
+        buffer.push_back(new float[buffer_size]);
+        for (int j = 0; j < buffer_size; j++){
+            buffer[i+num_channels][j] = 0;
+        }
+        std::ostringstream tmpstream;
+
+        if (i%2 == 0)
+            tmpstream << std::setw(1) << std::setfill('0') << (i + num_channels)/2 + 1 << "_ref";
+        else
+            tmpstream << std::setw(1) << std::setfill('0') << (i + num_channels)/2 + 1 << "_meas" ;
+
+        input_ports.push_back(jack_port_register (client, tmpstream.str().c_str(), JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0));
+        if (input_ports[i+num_channels] == NULL) {
+            std::cout << "Could not create Jack ports" << std::endl;
+            for (int i = 0; i < number; i++)
+                delete[] buffer[i + num_channels];
+            buffer.resize(num_channels);
+            input_ports.resize(num_channels);
+            return (-1);
+        }
+    }
+    num_channels += number;
+    return res;
 }

@@ -23,7 +23,7 @@ PlotFreqResp::PlotFreqResp()
     grid_freqResp->setAxes(QwtPlot::xBottom, QwtPlot::yLeft);
     grid_freqResp->attach(this);
 
-    curve_magn = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_magn.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_magn[i] = new QwtPlotCurve();
         curve_magn[i]->setTitle( "Amplitude" );
@@ -32,7 +32,7 @@ PlotFreqResp::PlotFreqResp()
         curve_magn[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
     }
 
-    curve_phase = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_phase.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_phase[i] = new QwtPlotCurve();
         curve_phase[i]->setTitle( "Phase" );
@@ -41,7 +41,7 @@ PlotFreqResp::PlotFreqResp()
         curve_phase[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
     }
 
-    curve_groupdelay = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_groupdelay.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_groupdelay[i] = new QwtPlotCurve();
         curve_groupdelay[i]->setTitle( "Group Delay" );
@@ -50,7 +50,7 @@ PlotFreqResp::PlotFreqResp()
         curve_groupdelay[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
     }
 
-    curve_mscohere = new QwtPlotCurve *[NUM_SYSTEMS];
+    curve_mscohere.resize(NUM_SYSTEMS);
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_mscohere[i] = new QwtPlotCurve();
         curve_mscohere[i]->setTitle( "Coherence" );
@@ -210,6 +210,41 @@ void PlotFreqResp::zoom_out_right()
     if (zoom_step_right < zoom_max_right)
         zoom_step_right++;
     rezoom();
+}
+
+void PlotFreqResp::add_channels(int number)
+{
+    int old_num = curve_magn.size();
+    for (int i = old_num; i < (old_num + number); i++){
+        curve_magn.push_back(new QwtPlotCurve());
+        curve_magn[i]->setTitle( "Amplitude" );
+        curve_magn[i]->setPen( get_color(i,0), 2 );
+        curve_magn[i]->setYAxis( QwtAxis::YLeft );
+        curve_magn[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+        curve_phase.push_back(new QwtPlotCurve());
+        curve_phase[i]->setTitle( "Phase" );
+        curve_phase[i]->setPen( get_color(i,1), 2 );
+        curve_phase[i]->setYAxis( QwtAxis::YRight );
+        curve_phase[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+        curve_groupdelay.push_back(new QwtPlotCurve());
+        curve_groupdelay[i]->setTitle( "Group Delay" );
+        curve_groupdelay[i]->setPen( get_color(i,1), 2 );
+        curve_groupdelay[i]->setYAxis( QwtAxis::YRight );
+        curve_groupdelay[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+        curve_mscohere.push_back(new QwtPlotCurve());
+        curve_mscohere[i]->setTitle( "Coherence" );
+        curve_mscohere[i]->setPen( get_color(i,1), 2 );
+        curve_mscohere[i]->setYAxis( QwtAxis::YRight );
+        curve_mscohere[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+
+        curve_magn[i]->attach(this);
+        curve_phase[i]->attach(this);
+        curve_groupdelay[i]->attach(this);
+        curve_mscohere[i]->attach(this);
+    }
 }
 
 void PlotFreqResp::rezoom()

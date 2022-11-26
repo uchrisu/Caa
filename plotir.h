@@ -4,6 +4,7 @@
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 #include <qwt_plot_grid.h>
+#include <vector>
 
 class PlotIR : public QwtPlot
 {
@@ -14,6 +15,7 @@ public:
     void set_window_data(int channel, double *xvals, double *data, int number);
     void set_visible_ir(int channel, bool state);
     void set_visible_window(int channel, bool state);
+    void add_channels(int number);
 
     void zoom_in();
     void zoom_out();
@@ -21,8 +23,8 @@ public:
 private:
     void rezoom();
 
-    QwtPlotCurve **curve_ir;
-    QwtPlotCurve **curve_window_ir;
+    std::vector<QwtPlotCurve *> curve_ir;
+    std::vector<QwtPlotCurve *> curve_window_ir;
     QwtPlotGrid *grid_ir;
 
     int zoom_step;

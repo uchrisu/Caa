@@ -17,10 +17,13 @@ public:
     void zoom_in();
     void zoom_out();
 
+    void add_channels(int number);
+
+
 private:
     void rezoom();
 
-    QwtPlotCurve **curve_signal, **curve_ref;
+    std::vector <QwtPlotCurve *> curve_signal, curve_ref;
     QwtPlotGrid *grid_signal;
 
     int zoom_step;

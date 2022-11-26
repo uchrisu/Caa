@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle(QString("Caa - ") + QString(APP_VERSION) );
 
     jabuffer = nullptr;
-    asa = nullptr;
+    //asa = nullptr;
 
     ui->setupUi(this);
 
@@ -37,20 +37,26 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Channel Tabs
 
-    channels_tabs = new QWidget*[NUM_SYSTEMS];
+    channels_tabs.resize(NUM_SYSTEMS + 1);
 
-    for (int i = 0; i < NUM_SYSTEMS; i++){
+    for (int i = 0; i < (NUM_SYSTEMS + 1); i++){
         channels_tabs[i] = new QWidget;
-        ui->tab_channels->addTab(channels_tabs[i], QString::number(i));
+        if (i == NUM_SYSTEMS)
+            ui->tab_channels->addTab(channels_tabs[i], "+");
+        else
+            ui->tab_channels->addTab(channels_tabs[i], QString::number(i+1));
     }
 
-    channel_configs = new ChannelConfigWidget*[NUM_SYSTEMS];
+    connect(ui->tab_channels, SIGNAL(currentChanged(int)), this, SLOT(ch_tab_changes(int)));
+
+    channel_configs.resize(NUM_SYSTEMS);
+
     for (int i = 0; i < NUM_SYSTEMS; i++){
         channel_configs[i] = new ChannelConfigWidget(this);
         channel_configs[i]->set_sysNumber(i);
     }
 
-    channels_layouts = new QVBoxLayout*[NUM_SYSTEMS];
+    channels_layouts.resize(NUM_SYSTEMS);
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
         channels_layouts[i] = new QVBoxLayout;
@@ -95,8 +101,9 @@ MainWindow::~MainWindow()
     delete plot_ir;
     delete plot_freqResp;
 
-    delete channels_tabs;
-    delete channels_layouts;
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        delete asa[i];
+    }
 
 }
 
@@ -105,13 +112,12 @@ void MainWindow::set_buffer(JAudioBuffer *jabuffer)
     this->jabuffer = jabuffer;
 }
 
-void MainWindow::set_analyzer(AudioSystemAnalyzer **asa)
+void MainWindow::init_analyzer()
 {
-    this->asa = asa;
-
-    //
+    asa.resize(NUM_SYSTEMS);
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
+        asa[i] = new AudioSystemAnalyzer(jabuffer, i);
         asa[i]->set_filterlength(list_lengths_N[channel_configs[i]->ui->comboBox_N->currentIndex()]);
         asa[i]->set_analyze_length(list_lengths_L[channel_configs[i]->ui->comboBox_L->currentIndex()]);
         asa[i]->set_freq_length(list_lengths_Nf[channel_configs[i]->ui->comboBox_Nfft->currentIndex()]);
@@ -123,7 +129,9 @@ void MainWindow::set_analyzer(AudioSystemAnalyzer **asa)
 
 void MainWindow::update_timer_event()
 {
-    //std::cout << "Timer" << std::endl;
+    if (static_cast<long>(asa.size()) < NUM_SYSTEMS)
+        return;
+
 
     for (int i = 0; i < NUM_SYSTEMS; i++)
     {
@@ -164,8 +172,6 @@ void MainWindow::update_timer_event()
 
     int64_t position = jabuffer->get_position();
 
-    //std::cout << "Position: " << position << std::endl;
-
     for (int number = 0; number < NUM_SYSTEMS; number++){
         jabuffer->get_samples(number*2+1, position - 1000, data, 1000);
         plot_signal->set_ref_data(number, xaxis, data, 1000);
@@ -187,8 +193,6 @@ void MainWindow::update_timer_event()
             int N = asa[number]->result_N();
             //int L = asa[number]->result_L();
             int Nf = asa[number]->result_Nf();
-
-            //std::cout << "result N: " << N << ", Nf: " << Nf << std::endl;
 
             double ir[N];
             asa[number]->get_impulse_response(ir, N);
@@ -269,6 +273,34 @@ void MainWindow::update_timer_event()
 
 }
 
+void MainWindow::ch_tab_changes(int index)
+{
+    if (index == NUM_SYSTEMS) {
+        jabuffer->add_channels(2);
+        asa.push_back(new AudioSystemAnalyzer(jabuffer, NUM_SYSTEMS));
+        channels_tabs.push_back(new QWidget);
+        ui->tab_channels->addTab(channels_tabs[NUM_SYSTEMS + 1], "+");
+        ui->tab_channels->setTabText(NUM_SYSTEMS, QString::number(NUM_SYSTEMS + 1));
+        channels_layouts.push_back(new QVBoxLayout);
+        channels_tabs[NUM_SYSTEMS]->setLayout(channels_layouts[NUM_SYSTEMS]);
+        channel_configs.push_back(new ChannelConfigWidget(this));
+        channel_configs[NUM_SYSTEMS]->set_sysNumber(NUM_SYSTEMS);
+        channels_layouts[NUM_SYSTEMS]->addWidget(channel_configs[NUM_SYSTEMS]);
+        asa[NUM_SYSTEMS]->set_filterlength(list_lengths_N[channel_configs[NUM_SYSTEMS]->ui->comboBox_N->currentIndex()]);
+        asa[NUM_SYSTEMS]->set_analyze_length(list_lengths_L[channel_configs[NUM_SYSTEMS]->ui->comboBox_L->currentIndex()]);
+        asa[NUM_SYSTEMS]->set_freq_length(list_lengths_Nf[channel_configs[NUM_SYSTEMS]->ui->comboBox_Nfft->currentIndex()]);
+        channel_configs[NUM_SYSTEMS]->set_asa(asa[NUM_SYSTEMS]);
+
+        plot_signal->add_channels(1);
+        plot_ir->add_channels(1);
+        plot_freqResp->add_channels(1);
+
+        NUM_SYSTEMS++;
+
+    }
+
+}
+
 
 
 void MainWindow::sel_freSmooting_changed(int index)
@@ -284,7 +316,7 @@ void MainWindow::sel_freSmooting_changed(int index)
 
 void MainWindow::update_statusbar()
 {
-    if (asa == nullptr)
+    if (static_cast<long>(asa.size()) < NUM_SYSTEMS)
         return;
     QString text;
     text.clear();

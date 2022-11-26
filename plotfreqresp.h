@@ -21,11 +21,13 @@ public:
     void zoom_out_left();
     void zoom_in_right();
     void zoom_out_right();
+    void add_channels(int number);
+
 
 private:
     void rezoom();
 
-    QwtPlotCurve **curve_magn, **curve_phase, **curve_groupdelay, **curve_mscohere;
+    std::vector<QwtPlotCurve *> curve_magn, curve_phase, curve_groupdelay, curve_mscohere;
     QwtPlotGrid *grid_freqResp;
 
     int zoom_step_left;
