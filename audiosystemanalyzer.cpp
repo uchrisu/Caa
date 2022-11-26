@@ -767,6 +767,11 @@ int AudioSystemAnalyzer::identify_delay(int64_t end_position)
     return max_pos - L + 2;
 }
 
+int AudioSystemAnalyzer::identify_delay()
+{
+    return identify_delay(audiobuffer->get_position());
+}
+
 int AudioSystemAnalyzer::int_calc_phase()
 {
     if (Nf < 1)

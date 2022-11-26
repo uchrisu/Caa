@@ -26,6 +26,7 @@ LIBS += -lfftw3 -lsndfile
 
 SOURCES += \
     audiosystemanalyzer.cpp \
+    channelconfigwidget.cpp \
     config.cpp \
     jaudiobuffer.cpp \
     main.cpp \
@@ -37,6 +38,7 @@ SOURCES += \
 
 HEADERS += \
     audiosystemanalyzer.h \
+    channelconfigwidget.h \
     config.h \
     jaudiobuffer.h \
     mainwindow.h \
@@ -46,6 +48,7 @@ HEADERS += \
     windowfunc.h
 
 FORMS += \
+    channelconfigwidget.ui \
     mainwindow.ui
 
 # Default rules for deployment.

@@ -32,6 +32,7 @@ public:
     void set_expTimeSmoothFactor(double factor);
     int get_freq_smooting();
     int identify_delay(int64_t end_position);
+    int identify_delay();
 
     int calc_all(int64_t end_position, bool blocking = true);
     bool is_calculation_done();

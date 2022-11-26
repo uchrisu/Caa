@@ -1,11 +1,10 @@
 #include "mainwindow.h"
+#include "ui_channelconfigwidget.h"
 #include "ui_mainwindow.h"
 
 #include <iostream>
 #include <qwt_scale_engine.h>
 #include "config.h"
-#include "windowfunc.h"
-#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -45,325 +44,19 @@ MainWindow::MainWindow(QWidget *parent)
         ui->tab_channels->addTab(channels_tabs[i], QString::number(i));
     }
 
+    channel_configs = new ChannelConfigWidget*[NUM_SYSTEMS];
+    for (int i = 0; i < NUM_SYSTEMS; i++){
+        channel_configs[i] = new ChannelConfigWidget(this);
+        channel_configs[i]->set_sysNumber(i);
+    }
+
     channels_layouts = new QVBoxLayout*[NUM_SYSTEMS];
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
         channels_layouts[i] = new QVBoxLayout;
         channels_tabs[i]->setLayout(channels_layouts[i]);
+        channels_layouts[i]->addWidget(channel_configs[i]);
     }
-
-    channels_check_show = new QCheckBox*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_check_show[i] = new QCheckBox;
-        channels_check_show[i]->setCheckState(Qt::Unchecked);
-        channels_check_show[i]->setText(QString("Show"));
-        channels_layouts[i]->addWidget(channels_check_show[i]);
-    }
-    channels_check_show[0]->setCheckState(Qt::Checked);
-
-    channels_sysident_method = new QLabel*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sysident_method[i] = new QLabel;
-        channels_sysident_method[i]->setText(QString("Systen Ident. Method:"));
-        channels_layouts[i]->addWidget(channels_sysident_method[i]);
-    }
-
-    channels_sel_sysident_method = new QComboBox*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sel_sysident_method[i] = new QComboBox;
-        for (auto &method : list_sysident_methods)
-            channels_sel_sysident_method[i]->addItem(QString::fromStdString(method));
-        channels_sel_sysident_method[i]->setCurrentIndex(config_stdindex_sysident_methods);
-        connect(channels_sel_sysident_method[i], SIGNAL(currentIndexChanged(int)), this, SLOT(sel_sysident_changed(int)));
-        channels_layouts[i]->addWidget(channels_sel_sysident_method[i]);
-    }
-
-    channels_sel_sysident_window = new QComboBox*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sel_sysident_window[i] = new QComboBox;
-        for (const auto& name : windowfunc::get_type_names())
-            channels_sel_sysident_window[i]->addItem(QString::fromStdString(name));
-        channels_sel_sysident_window[i]->setCurrentIndex(0);
-        connect(channels_sel_sysident_window[i], SIGNAL(currentIndexChanged(int)), this, SLOT(sel_sysident_window_changed(int)));
-        channels_layouts[i]->addWidget(channels_sel_sysident_window[i]);
-    }
-
-    /*
-    channels_sel_Nfft = new QComboBox*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sel_Nfft[i] = new QComboBox;
-        for (int Nf : list_lengths_Nf)
-            channels_sel_Nfft[i]->addItem(QString::number(Nf));
-        channels_sel_Nfft[i]->setCurrentIndex(config_stdindex_Nf);
-        connect(channels_sel_Nfft[i], SIGNAL(currentIndexChanged(int)), this, SLOT(sel_Nfft_changed(int)));
-        channels_layouts[i]->addWidget(channels_sel_Nfft[i]);
-    }*/
-
-
-    channels_line1 = new QFrame*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_line1[i] = new QFrame;
-        channels_line1[i]->setFrameShape(QFrame::HLine);
-        channels_line1[i]->setFrameShadow(QFrame::Sunken);
-        channels_layouts[i]->addWidget(channels_line1[i]);
-    }
-
-    channels_button_calcdelay = new QPushButton*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_button_calcdelay[i] = new QPushButton;
-        channels_button_calcdelay[i]->setText(QString("Calc Delay"));
-        connect(channels_button_calcdelay[i], SIGNAL(released()), &channels_calcdelay_mapper, SLOT(map()));
-        channels_calcdelay_mapper.setMapping(channels_button_calcdelay[i], i);
-        channels_layouts[i]->addWidget(channels_button_calcdelay[i]);
-    }
-    connect(&channels_calcdelay_mapper, SIGNAL(mapped(int)), this, SLOT(calcDelay_clicked(int)));
-
-    channels_label_delay = new QLabel*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_label_delay[i] = new QLabel;
-        channels_label_delay[i]->setText(QString("Delay (Samples):"));
-        channels_layouts[i]->addWidget(channels_label_delay[i]);
-    }
-
-    channels_edit_delay = new QLineEdit*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_edit_delay[i] = new QLineEdit;
-        channels_edit_delay[i]->setText(QString("0"));
-        channels_layouts[i]->addWidget(channels_edit_delay[i]);
-    }
-
-    channels_label_offset = new QLabel*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_label_offset[i] = new QLabel;
-        channels_label_offset[i]->setText(QString("Offset (Samples):"));
-        channels_layouts[i]->addWidget(channels_label_offset[i]);
-    }
-
-    channels_edit_offset = new QLineEdit*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_edit_offset[i] = new QLineEdit;
-        channels_edit_offset[i]->setText(QString("0"));
-        channels_layouts[i]->addWidget(channels_edit_offset[i]);
-    }
-
-    channels_button_setdelay = new QPushButton*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_button_setdelay[i] = new QPushButton;
-        channels_button_setdelay[i]->setText(QString("Set Delay+Offset"));
-        connect(channels_button_setdelay[i], SIGNAL(released()), &channels_setdelay_mapper, SLOT(map()));
-        channels_setdelay_mapper.setMapping(channels_button_setdelay[i], i);
-        channels_layouts[i]->addWidget(channels_button_setdelay[i]);
-    }
-    connect(&channels_setdelay_mapper, SIGNAL(mapped(int)), this, SLOT(on_setDelay_clicked(int)));
-
-    channels_line2 = new QFrame*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_line2[i] = new QFrame;
-        channels_line2[i]->setFrameShape(QFrame::HLine);
-        channels_line2[i]->setFrameShadow(QFrame::Sunken);
-        channels_layouts[i]->addWidget(channels_line2[i]);
-    }
-
-    channels_selLabel_N = new QLabel*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_selLabel_N[i] = new QLabel;
-        channels_selLabel_N[i]->setText(QString("System Length:"));
-        channels_layouts[i]->addWidget(channels_selLabel_N[i]);
-    }
-
-    channels_sel_N = new QComboBox*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sel_N[i] = new QComboBox;
-        for (int N : list_lengths_N)
-            channels_sel_N[i]->addItem(QString::number(N));
-        channels_sel_N[i]->setCurrentIndex(config_stdindex_N);
-        connect(channels_sel_N[i], SIGNAL(currentIndexChanged(int)), this, SLOT(sel_N_changed(int)));
-        channels_layouts[i]->addWidget(channels_sel_N[i]);
-    }
-
-    channels_selLabel_L = new QLabel*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_selLabel_L[i] = new QLabel;
-        channels_selLabel_L[i]->setText(QString("Identification Length:"));
-        channels_layouts[i]->addWidget(channels_selLabel_L[i]);
-    }
-
-    channels_sel_L = new QComboBox*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sel_L[i] = new QComboBox;
-        for (int L : list_lengths_L)
-            channels_sel_L[i]->addItem(QString::number(L));
-        channels_sel_L[i]->setCurrentIndex(config_stdindex_L);
-        connect(channels_sel_L[i], SIGNAL(currentIndexChanged(int)), this, SLOT(sel_L_changed(int)));
-        channels_layouts[i]->addWidget(channels_sel_L[i]);
-    }
-
-    channels_selLabel_Nfft = new QLabel*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_selLabel_Nfft[i] = new QLabel;
-        channels_selLabel_Nfft[i]->setText(QString("Frequency Length:"));
-        channels_layouts[i]->addWidget(channels_selLabel_Nfft[i]);
-    }
-
-    channels_sel_Nfft = new QComboBox*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sel_Nfft[i] = new QComboBox;
-        for (int Nf : list_lengths_Nf)
-            channels_sel_Nfft[i]->addItem(QString::number(Nf));
-        channels_sel_Nfft[i]->setCurrentIndex(config_stdindex_Nf);
-        connect(channels_sel_Nfft[i], SIGNAL(currentIndexChanged(int)), this, SLOT(sel_Nfft_changed(int)));
-        channels_layouts[i]->addWidget(channels_sel_Nfft[i]);
-    }
-
-    channels_line3 = new QFrame*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_line3[i] = new QFrame;
-        channels_line3[i]->setFrameShape(QFrame::HLine);
-        channels_line3[i]->setFrameShadow(QFrame::Sunken);
-        channels_layouts[i]->addWidget(channels_line3[i]);
-    }
-
-    channels_label_expTimeSmooth = new QLabel*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_label_expTimeSmooth[i] = new QLabel;
-        channels_label_expTimeSmooth[i]->setText(QString("Exp. Time Smooting:"));
-        channels_layouts[i]->addWidget(channels_label_expTimeSmooth[i]);
-    }
-
-    channels_slider_expTimeSmooth = new QSlider*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_slider_expTimeSmooth[i] = new QSlider;
-        channels_slider_expTimeSmooth[i]->setOrientation(Qt::Horizontal);
-        channels_slider_expTimeSmooth[i]->setMinimum(0);
-        channels_slider_expTimeSmooth[i]->setMaximum(100);
-        channels_slider_expTimeSmooth[i]->setTickInterval(5);
-        connect(channels_slider_expTimeSmooth[i], SIGNAL(valueChanged(int)), this, SLOT(slider_expTimeSmooth_changed(int)));
-        channels_layouts[i]->addWidget(channels_slider_expTimeSmooth[i]);
-    }
-
-    channels_line4 = new QFrame*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_line4[i] = new QFrame;
-        channels_line4[i]->setFrameShape(QFrame::HLine);
-        channels_line4[i]->setFrameShadow(QFrame::Sunken);
-        channels_layouts[i]->addWidget(channels_line4[i]);
-    }
-
-
-    channels_sel_window = new QComboBox*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_sel_window[i] = new QComboBox;
-        for (const auto& name : windowfunc::get_type_names())
-            channels_sel_window[i]->addItem(QString::fromStdString(name));
-        channels_sel_window[i]->setCurrentIndex(0);
-        connect(channels_sel_window[i], SIGNAL(currentIndexChanged(int)), this, SLOT(sel_window_changed(int)));
-        channels_layouts[i]->addWidget(channels_sel_window[i]);
-    }
-
-    channels_Label_WindowLength = new QLabel*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_Label_WindowLength[i] = new QLabel;
-        channels_Label_WindowLength[i]->setText(QString("Window Width:"));
-        channels_layouts[i]->addWidget(channels_Label_WindowLength[i]);
-    }
-
-    channels_edit_WindowLength = new QLineEdit*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_edit_WindowLength[i] = new QLineEdit;
-        channels_edit_WindowLength[i]->setText(QString("0"));
-        //channels_edit_WindowLength[i]->
-        channels_layouts[i]->addWidget(channels_edit_WindowLength[i]);
-    }
-
-    channels_Label_WindowOffset = new QLabel*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_Label_WindowOffset[i] = new QLabel;
-        channels_Label_WindowOffset[i]->setText(QString("Window Offset:"));
-        channels_layouts[i]->addWidget(channels_Label_WindowOffset[i]);
-    }
-
-    channels_edit_WindowOffset = new QLineEdit*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_edit_WindowOffset[i] = new QLineEdit;
-        channels_edit_WindowOffset[i]->setText(QString("0"));
-        channels_layouts[i]->addWidget(channels_edit_WindowOffset[i]);
-    }
-
-    channels_button_WindowSet = new QPushButton*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_button_WindowSet[i] = new QPushButton;
-        channels_button_WindowSet[i]->setText(QString("Set Window Width/Offset"));
-        connect(channels_button_WindowSet[i], SIGNAL(released()), this, SLOT(setWindow_clicked()));
-        channels_layouts[i]->addWidget(channels_button_WindowSet[i]);
-    }
-
-
-    channels_spacer1 = new QSpacerItem*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_spacer1[i] = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
-        channels_layouts[i]->addItem(channels_spacer1[i]);
-    }
-
-    channels_line5 = new QFrame*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_line5[i] = new QFrame;
-        channels_line5[i]->setFrameShape(QFrame::HLine);
-        channels_line5[i]->setFrameShadow(QFrame::Sunken);
-        channels_layouts[i]->addWidget(channels_line5[i]);
-    }
-
-    channels_layout_saveLoad = new QHBoxLayout*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_layout_saveLoad[i] = new QHBoxLayout;
-    }
-
-    channels_button_saveIR = new QPushButton*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_button_saveIR[i] = new QPushButton;
-        channels_button_saveIR[i]->setText(QString("Save IR"));
-        connect(channels_button_saveIR[i], SIGNAL(released()), this, SLOT(saveIR_clicked()));
-        channels_layout_saveLoad[i]->addWidget(channels_button_saveIR[i]);
-    }
-
-    channels_button_loadIR = new QPushButton*[NUM_SYSTEMS];
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_button_loadIR[i] = new QPushButton;
-        channels_button_loadIR[i]->setText(QString("Load IR"));
-        connect(channels_button_loadIR[i], SIGNAL(released()), this, SLOT(loadIR_clicked()));
-        channels_layout_saveLoad[i]->addWidget(channels_button_loadIR[i]);
-    }
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_layouts[i]->addLayout(channels_layout_saveLoad[i]);
-    }
-
-
-
-    channels_check_update = new QCheckBox*[NUM_SYSTEMS];
-
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        channels_check_update[i] = new QCheckBox;
-        channels_check_update[i]->setCheckState(Qt::Unchecked);
-        channels_check_update[i]->setText(QString("Update"));
-        channels_layouts[i]->addWidget(channels_check_update[i]);
-    }
-    channels_check_update[0]->setCheckState(Qt::Checked);
-
-
 
     // ---
 
@@ -402,78 +95,8 @@ MainWindow::~MainWindow()
     delete plot_ir;
     delete plot_freqResp;
 
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-      /*  delete channels_tabs[i];
-        //delete channels_layouts[i];
-        delete channels_check_show[i];
-        delete channels_sysident_method[i];
-        delete channels_sel_sysident_method[i];
-        delete channels_sel_sysident_window[i];
-        delete channels_line1[i];
-        delete channels_button_calcdelay[i];
-        delete channels_label_delay[i];
-        delete channels_edit_delay[i];
-        delete channels_label_offset[i];
-        delete channels_edit_offset[i];
-        delete channels_button_setdelay[i];
-        delete channels_line2[i];
-        delete channels_selLabel_N[i];
-        delete channels_sel_N[i];
-        delete channels_selLabel_L[i];
-        delete channels_sel_L[i];
-        delete channels_selLabel_Nfft[i];
-        delete channels_sel_Nfft[i];
-        delete channels_line3[i];
-        delete channels_label_expTimeSmooth[i];
-        delete channels_slider_expTimeSmooth[i];
-        delete channels_line4[i];
-        delete channels_sel_window[i];
-        delete channels_Label_WindowLength[i];
-        delete channels_edit_WindowLength[i];
-        delete channels_Label_WindowOffset[i];
-        delete channels_edit_WindowOffset[i];
-        delete channels_button_WindowSet[i];
-        delete channels_spacer1[i];
-        delete channels_check_update[i];*/
-    }
-
     delete channels_tabs;
     delete channels_layouts;
-    delete channels_check_show;
-    delete channels_sysident_method;
-    delete channels_sel_sysident_method;
-    delete channels_sel_sysident_window;
-    delete channels_line1;
-    delete channels_button_calcdelay;
-    delete channels_label_delay;
-    delete channels_edit_delay;
-    delete channels_label_offset;
-    delete channels_edit_offset;
-    delete channels_button_setdelay;
-    delete channels_line2;
-    delete channels_selLabel_N;
-    delete channels_sel_N;
-    delete channels_selLabel_L;
-    delete channels_sel_L;
-    delete channels_selLabel_Nfft;
-    delete channels_sel_Nfft;
-    delete channels_line3;
-    delete channels_label_expTimeSmooth;
-    delete channels_slider_expTimeSmooth;
-    delete channels_line4;
-    delete channels_sel_window;
-    delete channels_Label_WindowLength;
-    delete channels_edit_WindowLength;
-    delete channels_Label_WindowOffset;
-    delete channels_edit_WindowOffset;
-    delete channels_button_WindowSet;
-    delete channels_spacer1;
-    delete channels_line5;
-    delete channels_layout_saveLoad;
-    delete channels_button_saveIR;
-    delete channels_button_loadIR;
-    delete channels_check_update;
-
 
 }
 
@@ -489,9 +112,10 @@ void MainWindow::set_analyzer(AudioSystemAnalyzer **asa)
     //
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
-        asa[i]->set_filterlength(list_lengths_N[channels_sel_N[i]->currentIndex()]);
-        asa[i]->set_analyze_length(list_lengths_L[channels_sel_L[i]->currentIndex()]);
-        asa[i]->set_freq_length(list_lengths_Nf[channels_sel_Nfft[i]->currentIndex()]);
+        asa[i]->set_filterlength(list_lengths_N[channel_configs[i]->ui->comboBox_N->currentIndex()]);
+        asa[i]->set_analyze_length(list_lengths_L[channel_configs[i]->ui->comboBox_L->currentIndex()]);
+        asa[i]->set_freq_length(list_lengths_Nf[channel_configs[i]->ui->comboBox_Nfft->currentIndex()]);
+        channel_configs[i]->set_asa(asa[i]);
     }
 }
 
@@ -503,7 +127,7 @@ void MainWindow::update_timer_event()
 
     for (int i = 0; i < NUM_SYSTEMS; i++)
     {
-        if (!channels_check_show[i]->isChecked()){
+        if (!channel_configs[i]->ui->checkBox_show->isChecked()){
             plot_signal->set_visible_sig(i, false);
             plot_signal->set_visible_ref(i, false);
             plot_ir->set_visible_ir(i, false);
@@ -555,7 +179,7 @@ void MainWindow::update_timer_event()
 
     for (int number = 0; number < NUM_SYSTEMS; number++){
 
-        if (!channels_check_show[number]->isChecked()){
+        if (!channel_configs[number]->ui->checkBox_show->isChecked()){
             continue;
         }
 
@@ -612,7 +236,7 @@ void MainWindow::update_timer_event()
 
         }
 
-        if (!channels_check_update[number]->isChecked()){
+        if (!channel_configs[number]->ui->checkBox_Update->isChecked()){
             continue;
         }
 
@@ -622,7 +246,7 @@ void MainWindow::update_timer_event()
 
     for (int i = 0; i < NUM_SYSTEMS; i++)
     {
-        if (channels_check_show[i]->isChecked()){
+        if (channel_configs[i]->ui->checkBox_show->isChecked()){
             if (ui->checkBox_showMeas->isChecked())
                 plot_signal->set_visible_sig(i, true);
             if (ui->checkBox_showRef->isChecked())
@@ -646,67 +270,6 @@ void MainWindow::update_timer_event()
 }
 
 
-void MainWindow::on_setDelay_clicked(int sysnum)
-{
-    int delay;
-    bool ok;
-    delay = channels_edit_delay[sysnum]->text().toInt(&ok);
-    if (ok) {
-        std::cout << "Setting channel " << sysnum << " delay: " << delay << std::endl;
-        asa[sysnum]->set_delay(delay);
-    }
-
-    int offset;
-    offset = channels_edit_offset[sysnum]->text().toInt(&ok);
-    if (ok) {
-        std::cout << "Setting channel " << sysnum << " offset: " << offset << std::endl;
-        asa[sysnum]->set_offset(offset);
-    }
-}
-
-void MainWindow::calcDelay_clicked(int sysnum)
-{
-    int delay = asa[sysnum]->identify_delay(jabuffer->get_position());
-    channels_edit_delay[sysnum]->setText(QString::number(delay));
-}
-
-void MainWindow::sel_N_changed(int index)
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++)
-        if (QObject::sender() == channels_sel_N[i])
-            sys = i;
-    if (sys >= 0){
-        std::cout << "System " << sys << ": Setting N = " << list_lengths_N[index] << std::endl;
-        asa[sys]->set_filterlength(list_lengths_N[index]);
-    }
-}
-
-void MainWindow::sel_L_changed(int index)
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++)
-        if (QObject::sender() == channels_sel_L[i])
-            sys = i;
-    if (sys >= 0){
-        std::cout << "System " << sys << ": Setting L = " << list_lengths_L[index] << std::endl;
-        asa[sys]->set_analyze_length(list_lengths_L[index]);
-    }
-}
-
-void MainWindow::sel_Nfft_changed(int index)
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        std::cout << QObject::sender() << ", " << channels_sel_Nfft[i] << std::endl;
-        if (QObject::sender() == channels_sel_Nfft[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        std::cout << "System " << sys << ": Setting Nfft = " << list_lengths_Nf[index] << std::endl;
-        asa[sys]->set_freq_length(list_lengths_Nf[index]);
-    }
-}
 
 void MainWindow::sel_freSmooting_changed(int index)
 {
@@ -715,114 +278,6 @@ void MainWindow::sel_freSmooting_changed(int index)
             asa[i]->set_freq_smooting(0);
         else
             asa[i]->set_freq_smooting(list_smoothing_per_oct[index-1]);
-    }
-}
-
-void MainWindow::sel_sysident_changed(int index)
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        std::cout << QObject::sender() << ", " << channels_sel_sysident_method[i] << std::endl;
-        if (QObject::sender() == channels_sel_sysident_method[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        std::cout << "System " << sys << ": Setting Identification Method = " << list_sysident_methods[index] << std::endl;
-        asa[sys]->set_sysident_method(index);
-    }
-}
-
-void MainWindow::sel_sysident_window_changed(int index)
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (QObject::sender() == channels_sel_sysident_window[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        std::cout << "System " << sys << ": Syident-Window new Value: " << windowfunc::get_type_name(index) << std::endl;
-        asa[sys]->set_sysident_window_type(index);
-    }
-}
-
-void MainWindow::slider_expTimeSmooth_changed(int value)
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (QObject::sender() == channels_slider_expTimeSmooth[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        std::cout << "System " << sys << ": Exp. Time Smooting new Value: " << value << std::endl;
-        asa[sys]->set_expTimeSmoothFactor(static_cast<double>(value)/100.0);
-    }
-}
-
-
-void MainWindow::sel_window_changed(int index)
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (QObject::sender() == channels_sel_window[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        std::cout << "System " << sys << ": Window new Value: " << windowfunc::get_type_name(index) << std::endl;
-        asa[sys]->set_window_type(index);
-    }
-}
-
-void MainWindow::setWindow_clicked()
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (QObject::sender() == channels_button_WindowSet[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        int len, offset;
-        bool okay;
-        len = channels_edit_WindowLength[sys]->text().toInt(&okay);
-        if (!okay)
-            return;
-        offset = channels_edit_WindowOffset[sys]->text().toInt(&okay);
-        if (!okay)
-            return;
-        std::cout << "System " << sys << ": Window Length: " << len << ", Window Offset: " << offset << std::endl;
-        asa[sys]->set_window_length(len);
-        asa[sys]->set_window_offset(offset);
-    }
-}
-
-void MainWindow::saveIR_clicked()
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (QObject::sender() == channels_button_saveIR[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        QString filename = QFileDialog::getSaveFileName(this, "Save Impulse Response", nullptr, "Impulse Response (*.wav)");
-        if (!filename.isEmpty()){
-            if (!filename.endsWith(".wav"))
-                filename.append(".wav");
-            asa[sys]->save_impulse_response(filename.toLocal8Bit().data());
-        }
-    }
-
-}
-
-void MainWindow::loadIR_clicked()
-{
-    int sys = -1;
-    for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (QObject::sender() == channels_button_loadIR[i])
-            sys = i;
-    }
-    if (sys >= 0){
-        QString filename = QFileDialog::getOpenFileName(this, "Load Impulse Response", nullptr, "Impulse Response (*.wav)");
-        if (!filename.isEmpty())
-            asa[sys]->load_impulse_response(filename.toLocal8Bit().data());
     }
 }
 
@@ -835,7 +290,7 @@ void MainWindow::update_statusbar()
     text.clear();
     text.append("Calculation time: ");
     for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (channels_check_update[i]->isChecked())
+        if (channel_configs[i]->ui->checkBox_Update->isChecked())
             text.append(QString::number(asa[i]->get_calc_time_full()).rightJustified(4) + QString(" ms"));
         else
             text.append("-");
@@ -844,7 +299,7 @@ void MainWindow::update_statusbar()
     }
     text.append("  |  Identification time: ");
     for (int i = 0; i < NUM_SYSTEMS; i++){
-        if (channels_check_update[i]->isChecked())
+        if (channel_configs[i]->ui->checkBox_Update->isChecked())
             text.append(QString::number(asa[i]->get_calc_time_identify()).rightJustified(4) + QString(" ms"));
         else
             text.append("-");
