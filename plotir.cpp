@@ -31,7 +31,7 @@ PlotIR::PlotIR()
     for (int i = 0; i < NUM_SYSTEMS; i++){
         curve_window_ir[i] = new QwtPlotCurve();
         curve_window_ir[i]->setTitle( "Window" );
-        curve_window_ir[i]->setPen( get_color(i,0), 2 ),
+        curve_window_ir[i]->setPen( get_color(i,1), 2 ),
         curve_window_ir[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
     }
 
@@ -110,7 +110,7 @@ void PlotIR::add_channels(int number)
 
         curve_window_ir.push_back(new QwtPlotCurve());
         curve_window_ir[i]->setTitle( "Window" );
-        curve_window_ir[i]->setPen( get_color(i,0), 2 ),
+        curve_window_ir[i]->setPen( get_color(i,1), 2 ),
         curve_window_ir[i]->setRenderHint( QwtPlotItem::RenderAntialiased, true );
         curve_window_ir[i]->attach(this);
     }
@@ -129,6 +129,19 @@ void PlotIR::zoom_out()
     if (zoom_step < zoom_max)
         zoom_step++;
     rezoom();
+}
+
+void PlotIR::change_color(int sysindex, QColor color)
+{
+    if ((sysindex >= 0) && (sysindex < NUM_SYSTEMS)){
+        curve_ir[sysindex]->setPen(color, 2);
+        QColor halfcolor;
+        halfcolor = color;
+        halfcolor.setRed((color.red() + 255) / 2);
+        halfcolor.setGreen((color.green() + 255) / 2);
+        halfcolor.setBlue((color.blue() + 255) / 2);
+        curve_window_ir[sysindex]->setPen(halfcolor, 2);
+    }
 }
 
 void PlotIR::rezoom()

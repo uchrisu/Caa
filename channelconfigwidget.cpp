@@ -5,6 +5,7 @@
 #include "windowfunc.h"
 #include <iostream>
 #include <QFileDialog>
+#include <QColorDialog>
 
 ChannelConfigWidget::ChannelConfigWidget(QWidget *parent) :
     QWidget(parent),
@@ -14,6 +15,7 @@ ChannelConfigWidget::ChannelConfigWidget(QWidget *parent) :
 
     asa = nullptr;
     sys = -1;
+    plot_color = get_color(0, 0);
 
     for (auto &method : list_sysident_methods)
         ui->comboBox_SysIdentMethod->addItem(QString::fromStdString(method));
@@ -68,6 +70,8 @@ ChannelConfigWidget::ChannelConfigWidget(QWidget *parent) :
 
     connect(ui->pushButton_LoadIR, SIGNAL(released()), this, SLOT(loadIR_clicked()));
 
+    connect(ui->pushButton_selColor, SIGNAL(released()), this, SLOT(select_color_clicked()));
+
 
 }
 
@@ -85,6 +89,7 @@ void ChannelConfigWidget::set_asa(AudioSystemAnalyzer *asa)
 void ChannelConfigWidget::set_sysNumber(int number)
 {
     sys = number;
+    plot_color = get_color(number, 0);
 }
 
 void ChannelConfigWidget::sel_sysident_changed(int index)
@@ -207,6 +212,12 @@ void ChannelConfigWidget::loadIR_clicked()
         if (!filename.isEmpty())
             asa->load_impulse_response(filename.toLocal8Bit().data());
     }
+}
+
+void ChannelConfigWidget::select_color_clicked()
+{
+    plot_color = QColorDialog::getColor(plot_color, this );
+    emit colorChanged(sys, plot_color);
 }
 
 

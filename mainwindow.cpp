@@ -62,6 +62,9 @@ MainWindow::MainWindow(QWidget *parent)
         channels_layouts[i] = new QVBoxLayout;
         channels_tabs[i]->setLayout(channels_layouts[i]);
         channels_layouts[i]->addWidget(channel_configs[i]);
+        connect(channel_configs[i], SIGNAL(colorChanged(int,QColor)), plot_ir, SLOT(change_color(int,QColor)));
+        connect(channel_configs[i], SIGNAL(colorChanged(int,QColor)), plot_signal, SLOT(change_color(int,QColor)));
+        connect(channel_configs[i], SIGNAL(colorChanged(int,QColor)), plot_freqResp, SLOT(change_color(int,QColor)));
     }
 
     // ---
@@ -83,7 +86,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->pushButton_zoomFreqLeftOut, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_out_left);
     connect(ui->pushButton_zoomFreqRightIn, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_in_right);
     connect(ui->pushButton_zoomFreqRightOut, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_out_right);
-
 
     // Timer
 
@@ -295,12 +297,15 @@ void MainWindow::ch_tab_changes(int index)
         plot_ir->add_channels(1);
         plot_freqResp->add_channels(1);
 
+        connect(channel_configs[NUM_SYSTEMS], SIGNAL(colorChanged(int,QColor)), plot_ir, SLOT(change_color(int,QColor)));
+        connect(channel_configs[NUM_SYSTEMS], SIGNAL(colorChanged(int,QColor)), plot_signal, SLOT(change_color(int,QColor)));
+        connect(channel_configs[NUM_SYSTEMS], SIGNAL(colorChanged(int,QColor)), plot_freqResp, SLOT(change_color(int,QColor)));
+
         NUM_SYSTEMS++;
 
     }
 
 }
-
 
 
 void MainWindow::sel_freSmooting_changed(int index)

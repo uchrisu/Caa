@@ -33,10 +33,15 @@ private slots:
     void setWindow_clicked();
     void saveIR_clicked();
     void loadIR_clicked();
+    void select_color_clicked();
+
+signals:
+    void colorChanged(int sysindex, QColor color);
 
 private:
     AudioSystemAnalyzer *asa;
     int sys;
+    QColor plot_color;
 };
 
 #endif // CHANNELCONFIGWIDGET_H

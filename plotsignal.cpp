@@ -122,6 +122,19 @@ void PlotSignal::add_channels(int number)
     }
 }
 
+void PlotSignal::change_color(int sysindex, QColor color)
+{
+    if ((sysindex >= 0) && (sysindex < NUM_SYSTEMS)){
+        curve_signal[sysindex]->setPen(color, 2);
+        QColor halfcolor;
+        halfcolor = color;
+        halfcolor.setRed((color.red() + 255) / 2);
+        halfcolor.setGreen((color.green() + 255) / 2);
+        halfcolor.setBlue((color.blue() + 255) / 2);
+        curve_ref[sysindex]->setPen(halfcolor, 2);
+    }
+}
+
 void PlotSignal::rezoom()
 {
     double max = std::pow(2, zoom_step);

@@ -7,6 +7,8 @@
 
 class PlotSignal : public QwtPlot
 {
+    Q_OBJECT
+
 public:
     PlotSignal();
     void set_sig_data(int channel, float *xvals, float *data, int number);
@@ -19,6 +21,8 @@ public:
 
     void add_channels(int number);
 
+public slots:
+    void change_color(int sysindex, QColor color);
 
 private:
     void rezoom();

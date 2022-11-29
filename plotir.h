@@ -8,6 +8,8 @@
 
 class PlotIR : public QwtPlot
 {
+    Q_OBJECT
+
 public:
     PlotIR();
 
@@ -19,6 +21,9 @@ public:
 
     void zoom_in();
     void zoom_out();
+
+public slots:
+    void change_color(int sysindex, QColor color);
 
 private:
     void rezoom();

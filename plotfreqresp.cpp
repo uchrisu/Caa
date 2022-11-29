@@ -247,6 +247,21 @@ void PlotFreqResp::add_channels(int number)
     }
 }
 
+void PlotFreqResp::change_color(int sysindex, QColor color)
+{
+    if ((sysindex >= 0) && (sysindex < NUM_SYSTEMS)){
+        curve_magn[sysindex]->setPen(color, 2);
+        QColor halfcolor;
+        halfcolor = color;
+        halfcolor.setRed((color.red() + 255) / 2);
+        halfcolor.setGreen((color.green() + 255) / 2);
+        halfcolor.setBlue((color.blue() + 255) / 2);
+        curve_phase[sysindex]->setPen(halfcolor, 2);
+        curve_groupdelay[sysindex]->setPen(halfcolor, 2);
+        curve_mscohere[sysindex]->setPen(halfcolor, 2);
+    }
+}
+
 void PlotFreqResp::rezoom()
 {
     double max = 40 * std::pow(2, zoom_step_left);

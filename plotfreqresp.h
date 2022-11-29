@@ -7,6 +7,8 @@
 
 class PlotFreqResp : public QwtPlot
 {
+    Q_OBJECT
+
 public:
     PlotFreqResp();
     void set_magn_data(int channel, double *xvals, double *data, int number);
@@ -23,6 +25,8 @@ public:
     void zoom_out_right();
     void add_channels(int number);
 
+public slots:
+    void change_color(int sysindex, QColor color);
 
 private:
     void rezoom();
