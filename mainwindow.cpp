@@ -87,6 +87,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->pushButton_zoomFreqRightIn, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_in_right);
     connect(ui->pushButton_zoomFreqRightOut, &QPushButton::clicked, plot_freqResp, &PlotFreqResp::zoom_out_right);
 
+    connect(ui->spinBox_freqMin, SIGNAL(valueChanged(int)), this, SLOT(spin_freqMin_changed(int)));
+    connect(ui->spinBox_freqMax, SIGNAL(valueChanged(int)), this, SLOT(spin_freqMax_changed(int)));
+
     // Timer
 
     updatetimer = new QTimer(this);
@@ -316,6 +319,24 @@ void MainWindow::sel_freSmooting_changed(int index)
         else
             asa[i]->set_freq_smooting(list_smoothing_per_oct[index-1]);
     }
+}
+
+void MainWindow::spin_freqMin_changed(int val)
+{
+    if ((val * 2) > ui->spinBox_freqMax->value()){
+        val = ui->spinBox_freqMax->value() / 2;
+        ui->spinBox_freqMin->setValue(val);
+    }
+    plot_freqResp->zoom_freq(val, ui->spinBox_freqMax->value());
+}
+
+void MainWindow::spin_freqMax_changed(int val)
+{
+    if(val < (2 * ui->spinBox_freqMin->value())){
+        val = ui->spinBox_freqMin->value() * 2;
+        ui->spinBox_freqMax->setValue(val);
+    }
+    plot_freqResp->zoom_freq(ui->spinBox_freqMin->value(), val);
 }
 
 

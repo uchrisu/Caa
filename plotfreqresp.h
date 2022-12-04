@@ -23,6 +23,7 @@ public:
     void zoom_out_left();
     void zoom_in_right();
     void zoom_out_right();
+    void zoom_freq(int min, int max);
     void add_channels(int number);
 
 public slots:

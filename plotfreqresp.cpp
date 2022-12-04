@@ -212,6 +212,11 @@ void PlotFreqResp::zoom_out_right()
     rezoom();
 }
 
+void PlotFreqResp::zoom_freq(int min, int max)
+{
+    setAxisScale(QwtPlot::xBottom, min, max);
+}
+
 void PlotFreqResp::add_channels(int number)
 {
     int old_num = curve_magn.size();

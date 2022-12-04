@@ -41,6 +41,9 @@ private slots:
 
     void sel_freSmooting_changed(int index);
 
+    void spin_freqMin_changed(int val);
+    void spin_freqMax_changed(int val);
+
 private:
     void update_statusbar();
 
