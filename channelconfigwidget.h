@@ -14,15 +14,18 @@ class ChannelConfigWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit ChannelConfigWidget(QWidget *parent = nullptr);
+    explicit ChannelConfigWidget(int number, QWidget *parent = nullptr);
     ~ChannelConfigWidget();
     void set_asa(AudioSystemAnalyzer *asa);
-    void set_sysNumber(int number);
     Ui::ChannelConfigWidget *ui;
+    void add_channels(int number);
 
 private slots:
+    void sel_type_changed(int index);
     void sel_sysident_changed(int index);
     void sel_sysident_window_changed(int index);
+    void sel_combine_chA_changed(int index);
+    void sel_combine_chB_changed(int index);
     void calc_delay_clicked();
     void set_delay_offset_clicked();
     void sel_N_changed(int index);
@@ -41,6 +44,7 @@ signals:
 private:
     AudioSystemAnalyzer *asa;
     int sys;
+    int type;
     QColor plot_color;
 };
 

@@ -19,7 +19,7 @@
 class AudioSystemAnalyzer
 {
 public:
-    AudioSystemAnalyzer(JAudioBuffer *buffer, int index = 0);
+    AudioSystemAnalyzer(JAudioBuffer *buffer, int index, std::vector<AudioSystemAnalyzer *> asas);
     ~AudioSystemAnalyzer();
 
     void set_delay(int delay);
@@ -33,6 +33,7 @@ public:
     int get_freq_smooting();
     int identify_delay(int64_t end_position);
     int identify_delay();
+    void set_type(int ch_type);
 
     int calc_all(int64_t end_position, bool blocking = true);
     bool is_calculation_done();
@@ -40,8 +41,10 @@ public:
     int result_N();
     int result_L();
     int result_Nf();
+    int result_Offset();
 
     int get_impulse_response(double *ir, int len);
+    int get_impulse_response_block(double *ir, int len);
     int get_freq(double *fr, int len);
     int get_freq_resp(double *fr, int len);
     int get_freq_resp_db(double *fr, int len);
@@ -69,10 +72,13 @@ public:
     int save_impulse_response(char *filename);
     int load_impulse_response(char *filename);
 
+    void set_combine_irs(int chanA, int chanB);
+
 
 private:
 
     int int_identify_IR(int64_t end_position);
+    int int_combine_IRs();
     int int_calc_freq_resp();
     int int_calc_phase();
     int int_calc_mscohere();
@@ -94,16 +100,18 @@ private:
 
     int index;
     int sysident_method;
+    int ch_type;
 
     JAudioBuffer *audiobuffer;
     windowfunc *window, *sysident_window, *mscohere_window;
+    std::vector<AudioSystemAnalyzer *> asas;
 
 
     int N, Nf;
     int Nf_real;
     int64_t end_position;
     int L;
-    int system_delay, additional_offset;
+    int system_delay, additional_offset, combine_offset;
     double expTimeSmoothFactor;
 
     double *h;
@@ -128,12 +136,14 @@ private:
     std::atomic<bool> shutdown, start_calculation;
 
     int calc_result_N, calc_result_L, calc_result_Nf;
+    int calc_result_Offset;
 
     fftw_complex *f_h;
 
     std::thread *calc_thread;
 
     std::mutex calc_mtx;
+    std::mutex h_mtx;
 
     double *data_corr_in;
     double *data_corr_out;
@@ -163,6 +173,14 @@ private:
     fftw_plan plan_mscohere_x;
     fftw_plan plan_mscohere_y;
 
+    double *combine_fft_h;
+    fftw_complex *combine_fft_f1;
+    fftw_complex *combine_fft_f2;
+    fftw_plan plan_combine_fft1;
+    fftw_plan plan_combine_fft2;
+    fftw_plan plan_combine_ifft;
+
+
     std::atomic<int> calc_time_full;
     std::atomic<int> calc_time_identify;
 
@@ -180,6 +198,11 @@ private:
     std::atomic<int> next_window_length;
     std::atomic<int> next_window_offset;
     std::atomic<int> next_window_type;
+
+    int combine_chA, combine_chB;
+    std::atomic<int> next_combine_chA;
+    std::atomic<int> next_combine_chB;
+    std::atomic<int> next_ch_type;
 
 
 };

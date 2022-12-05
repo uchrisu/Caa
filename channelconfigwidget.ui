@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>854</height>
+    <height>965</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -41,6 +41,33 @@
       </layout>
      </item>
      <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QLabel" name="label_type">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Type:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_type"/>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="Line" name="line_6">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QLabel" name="label_SystemIdentMethod">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -58,6 +85,34 @@
      </item>
      <item>
       <widget class="QComboBox" name="comboBox_SysIdentWindow"/>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_comb_chanA">
+       <item>
+        <widget class="QLabel" name="label_comb_chanA">
+         <property name="text">
+          <string>Channel A:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_comb_chanA"/>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_comb_chanB">
+       <item>
+        <widget class="QLabel" name="label_comb_chanB">
+         <property name="text">
+          <string>Channel B:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_comb_chanB"/>
+       </item>
+      </layout>
      </item>
      <item>
       <widget class="Line" name="line">

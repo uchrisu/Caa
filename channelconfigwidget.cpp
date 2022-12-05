@@ -7,15 +7,21 @@
 #include <QFileDialog>
 #include <QColorDialog>
 
-ChannelConfigWidget::ChannelConfigWidget(QWidget *parent) :
+ChannelConfigWidget::ChannelConfigWidget(int number, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ChannelConfigWidget)
 {
     ui->setupUi(this);
 
     asa = nullptr;
-    sys = -1;
-    plot_color = get_color(0, 0);
+    sys = number;
+    type = config_stdindex_channel_type;
+    plot_color = get_color(sys, 0);
+
+    for (auto &type : list_channel_types)
+        ui->comboBox_type->addItem(QString::fromStdString(type));
+    ui->comboBox_type->setCurrentIndex(config_stdindex_channel_type);
+    connect(ui->comboBox_type, SIGNAL(currentIndexChanged(int)), this, SLOT(sel_type_changed(int)));
 
     for (auto &method : list_sysident_methods)
         ui->comboBox_SysIdentMethod->addItem(QString::fromStdString(method));
@@ -26,6 +32,19 @@ ChannelConfigWidget::ChannelConfigWidget(QWidget *parent) :
         ui->comboBox_SysIdentWindow->addItem(QString::fromStdString(name));
     ui->comboBox_SysIdentWindow->setCurrentIndex(0);
     connect(ui->comboBox_SysIdentWindow, SIGNAL(currentIndexChanged(int)), this, SLOT(sel_sysident_window_changed(int)));
+
+    for (int chan = 0; chan < NUM_SYSTEMS; chan++){
+        ui->comboBox_comb_chanA->addItem(QString::number(chan+1));
+        ui->comboBox_comb_chanB->addItem(QString::number(chan+1));
+    }
+    ui->comboBox_comb_chanA->setItemData(sys, false, Qt::UserRole -1);
+    ui->comboBox_comb_chanB->setItemData(sys, false, Qt::UserRole -1);
+    if (sys == 0) {
+        ui->comboBox_comb_chanA->setCurrentIndex(1);
+        ui->comboBox_comb_chanB->setCurrentIndex(1);
+    }
+    connect(ui->comboBox_comb_chanA, SIGNAL(currentIndexChanged(int)), this, SLOT(sel_combine_chA_changed(int)));
+    connect(ui->comboBox_comb_chanB, SIGNAL(currentIndexChanged(int)), this, SLOT(sel_combine_chB_changed(int)));
 
     connect(ui->pushButton_CalcDelay, SIGNAL(released()), this, SLOT(calc_delay_clicked()));
 
@@ -72,6 +91,7 @@ ChannelConfigWidget::ChannelConfigWidget(QWidget *parent) :
 
     connect(ui->pushButton_selColor, SIGNAL(released()), this, SLOT(select_color_clicked()));
 
+    sel_type_changed(config_stdindex_channel_type);
 
 }
 
@@ -86,14 +106,62 @@ void ChannelConfigWidget::set_asa(AudioSystemAnalyzer *asa)
         this->asa = asa;
 }
 
-void ChannelConfigWidget::set_sysNumber(int number)
+void ChannelConfigWidget::add_channels(int number)
 {
-    sys = number;
-    plot_color = get_color(number, 0);
+    for (int i = 0; i < number; i++){
+        ui->comboBox_comb_chanA->addItem(QString::number(NUM_SYSTEMS + i + 1));
+        ui->comboBox_comb_chanB->addItem(QString::number(NUM_SYSTEMS + i + 1));
+    }
+    ui->comboBox_comb_chanA->setItemData(sys, false, Qt::UserRole -1);
+    ui->comboBox_comb_chanB->setItemData(sys, false, Qt::UserRole -1);
+}
+
+
+void ChannelConfigWidget::sel_type_changed(int index)
+{
+    type = index;
+    if (type == config_channel_type_combine){
+        ui->label_SystemIdentMethod->hide();
+        ui->comboBox_SysIdentMethod->hide();
+        ui->comboBox_SysIdentWindow->hide();
+        ui->label_comb_chanA->show();
+        ui->label_comb_chanB->show();
+        ui->comboBox_comb_chanA->show();
+        ui->comboBox_comb_chanB->show();
+        ui->pushButton_CalcDelay->hide();
+        ui->label_Delay->hide();
+        ui->lineEdit_Delay->hide();
+        ui->label_ExpTimeSmoothing->hide();
+        ui->slider_ExpTimeSmoothing->hide();
+    }
+    else { // standard live
+        ui->label_comb_chanA->hide();
+        ui->label_comb_chanB->hide();
+        ui->comboBox_comb_chanA->hide();
+        ui->comboBox_comb_chanB->hide();
+        ui->label_SystemIdentMethod->show();
+        ui->comboBox_SysIdentMethod->show();
+        if (ui->comboBox_SysIdentMethod->currentIndex() == config_sysident_DUALFFT)
+            ui->comboBox_SysIdentWindow->show();
+        else
+            ui->comboBox_SysIdentWindow->hide();
+        ui->pushButton_CalcDelay->show();
+        ui->label_Delay->show();
+        ui->lineEdit_Delay->show();
+        ui->label_ExpTimeSmoothing->show();
+        ui->slider_ExpTimeSmoothing->show();
+    }
+    if (asa != nullptr){
+        asa->set_type(index);
+    }
 }
 
 void ChannelConfigWidget::sel_sysident_changed(int index)
 {
+    if (index == config_sysident_DUALFFT)
+        ui->comboBox_SysIdentWindow->show();
+    else
+        ui->comboBox_SysIdentWindow->hide();
     if (asa != nullptr){
         std::cout << "System " << sys << ": Setting Identification Method = " << list_sysident_methods[index] << std::endl;
         asa->set_sysident_method(index);
@@ -106,6 +174,23 @@ void ChannelConfigWidget::sel_sysident_window_changed(int index)
         std::cout << "System " << sys << ": Syident-Window new Value: " << windowfunc::get_type_name(index) << std::endl;
         asa->set_sysident_window_type(index);
     }
+}
+
+void ChannelConfigWidget::sel_combine_chA_changed(int index)
+{
+    if (asa != nullptr){
+        std::cout << "System " << sys << ": Combine Channel A changed: " << index << std::endl;
+        asa->set_combine_irs(index, ui->comboBox_comb_chanB->currentIndex());
+    }
+}
+
+void ChannelConfigWidget::sel_combine_chB_changed(int index)
+{
+    if (asa != nullptr){
+        std::cout << "System " << sys << ": Combine Channel B changed: " << index << std::endl;
+        asa->set_combine_irs(ui->comboBox_comb_chanA->currentIndex(), index);
+    }
+
 }
 
 void ChannelConfigWidget::calc_delay_clicked()

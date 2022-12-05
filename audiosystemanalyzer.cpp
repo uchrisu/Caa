@@ -11,13 +11,15 @@
 static std::mutex fftw_mtx;
 
 
-AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
+AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index, std::vector<AudioSystemAnalyzer *> asas)
 {
     calc_time_full = 0;
     calc_time_identify = 0;
+    ch_type = config_stdindex_channel_type;
 
     this->index = index;
     this->sysident_method = config_stdindex_sysident_methods;
+    this->asas = asas;
 
     window = new windowfunc(windowfunc::type_rectangular, 0);
     sysident_window = new windowfunc(windowfunc::type_rectangular, 0);
@@ -32,6 +34,7 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
 
     this->audiobuffer = buffer;
     this->additional_offset = 0;
+    this->combine_offset = 0;
     this->system_delay = 0;
     this->h = nullptr;
     this->f_h = nullptr;
@@ -74,11 +77,20 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
     plan_mscohere_x = nullptr;
     plan_mscohere_y = nullptr;
 
-    calc_result_N = calc_result_L = calc_result_Nf = 0;
+    combine_fft_h = nullptr;
+    combine_fft_f1 = nullptr;
+    combine_fft_f2 = nullptr;
+    plan_combine_fft1 = nullptr;
+    plan_combine_fft2 = nullptr;
+    plan_combine_ifft = nullptr;
 
-    N = Nf = Nf_real = L = system_delay = additional_offset = -1;
+    calc_result_N = calc_result_L = calc_result_Nf = calc_result_Offset = 0;
+
+    N = Nf = Nf_real = L = system_delay = additional_offset = combine_offset = -1;
     expTimeSmoothFactor = - 1.0;
     steps_per_octave = -1;
+    combine_chA = -1;
+    combine_chB = -1;
 
     set_filterlength(STANDARD_FILTERLENGTH);
     set_freq_length(STANDARD_FILTERLENGTH);
@@ -93,6 +105,15 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index)
     next_window_length = 2*STANDARD_FILTERLENGTH;
     next_window_offset = -STANDARD_FILTERLENGTH;
     next_window_type = windowfunc::type_rectangular;
+    next_ch_type = config_stdindex_channel_type;
+    if (index == 0){
+        next_combine_chA = 1;
+        next_combine_chB = 1;
+    }
+    else {
+        next_combine_chA = 0;
+        next_combine_chB = 0;
+    }
 
     calc_thread = new std::thread(&AudioSystemAnalyzer::calc_thread_fun, this);
 
@@ -182,6 +203,20 @@ AudioSystemAnalyzer::~AudioSystemAnalyzer()
         fftw_destroy_plan(plan_mscohere_x);
     if (plan_mscohere_y != nullptr)
         fftw_destroy_plan(plan_mscohere_y);
+
+    if (combine_fft_h != nullptr)
+        fftw_free(combine_fft_h);
+    if (combine_fft_f1 != nullptr)
+        fftw_free(combine_fft_f1);
+    if (combine_fft_f2 != nullptr)
+        fftw_free(combine_fft_f2);
+    if (plan_combine_fft1 != nullptr)
+        fftw_destroy_plan(plan_combine_fft1);
+    if (plan_combine_fft2 != nullptr)
+        fftw_destroy_plan(plan_combine_fft2);
+    if (plan_combine_ifft != nullptr)
+        fftw_destroy_plan(plan_combine_ifft);
+
 }
 
 void AudioSystemAnalyzer::set_delay(int delay)
@@ -205,12 +240,16 @@ void AudioSystemAnalyzer::int_set_filterlength(int len)
 
     this->N = len;
 
+    h_mtx.lock();
     if (this->h != nullptr)
         delete[] h;
     h = new double[len];
+    calc_result_N = 0;
+    calc_result_Offset = 0;
 
     for (int i = 0; i < len; i++)
         this->h[i] = 0.0;
+    h_mtx.unlock();
 
     fftw_mtx.lock();
 
@@ -250,6 +289,25 @@ void AudioSystemAnalyzer::int_set_filterlength(int len)
         fftw_destroy_plan(plan_dualfft_out);
     plan_dualfft_out = fftw_plan_dft_c2r_1d(N, dualfft_fy, dualfft_out, FFTW_ESTIMATE);
 
+    if (combine_fft_h != nullptr)
+        fftw_free(combine_fft_h);
+    combine_fft_h = (double *) fftw_malloc(sizeof(double) * 2*N);
+    if (combine_fft_f1 != nullptr)
+        fftw_free(combine_fft_f1);
+    combine_fft_f1 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * 2*N);
+    if (combine_fft_f2 != nullptr)
+        fftw_free(combine_fft_f2);
+    combine_fft_f2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * 2*N);
+    if (plan_combine_fft1 != nullptr)
+        fftw_destroy_plan(plan_combine_fft1);
+    plan_combine_fft1 = fftw_plan_dft_r2c_1d(2*N, combine_fft_h, combine_fft_f1, FFTW_ESTIMATE);
+    if (plan_combine_fft2 != nullptr)
+        fftw_destroy_plan(plan_combine_fft2);
+    plan_combine_fft2 = fftw_plan_dft_r2c_1d(2*N, combine_fft_h, combine_fft_f2, FFTW_ESTIMATE);
+    if (plan_combine_ifft != nullptr)
+        fftw_destroy_plan(plan_combine_ifft);
+    plan_combine_ifft = fftw_plan_dft_c2r_1d(2*N, combine_fft_f1, combine_fft_h, FFTW_ESTIMATE);
+
     fftw_mtx.unlock();
 
 
@@ -260,9 +318,6 @@ void AudioSystemAnalyzer::int_set_filterlength(int len)
 
 
     calculation_done = false;
-    calc_result_N = 0;
-
-
 }
 
 
@@ -631,6 +686,7 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
     else
         return -1;
 
+    h_mtx.lock();
     for (int i = 0; i < N; i++){
         if (!std::isnormal(h_new[i]))
             h_new[i] = 0.0;
@@ -638,6 +694,9 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
         if (std::isnan(h[i]))
             std::cout << "NAN" << std::endl;
     }
+    calc_result_N = N;
+    calc_result_Offset = additional_offset;
+    h_mtx.unlock();
 
     auto ende_t  = std::chrono::high_resolution_clock::now();
 
@@ -645,6 +704,39 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
 
     return 0;
 
+}
+
+int AudioSystemAnalyzer::int_combine_IRs()
+{
+    combine_offset = 0;
+    combine_offset += asas[combine_chA]->result_Offset();
+    asas[combine_chA]->get_impulse_response_block(combine_fft_h, N);
+    for (int i = N; i < 2*N; i++)
+        combine_fft_h[i] = 0;
+    fftw_execute(plan_combine_fft1);
+
+    combine_offset += asas[combine_chB]->result_Offset();
+    asas[combine_chB]->get_impulse_response_block(combine_fft_h, N);
+    for (int i = N; i < 2*N; i++)
+        combine_fft_h[i] = 0;
+    fftw_execute(plan_combine_fft2);
+
+    for (int i = 0; i < 2*N; i++){
+        double re = combine_fft_f1[i][0]*combine_fft_f2[i][0] - combine_fft_f1[i][1]*combine_fft_f2[i][1];
+        double im = combine_fft_f1[i][0]*combine_fft_f2[i][1] + combine_fft_f1[i][1]*combine_fft_f2[i][0];
+        combine_fft_f1[i][0] = re;
+        combine_fft_f1[i][1] = im;
+    }
+
+    fftw_execute(plan_combine_ifft);
+    h_mtx.lock();
+    for (int i = 0; i < N; i++){
+        h[i] = combine_fft_h[i] / (2*N);
+    }
+    calc_result_N = N;
+    calc_result_Offset = combine_offset + additional_offset;
+    h_mtx.unlock();
+    return 0;
 }
 
 
@@ -663,6 +755,21 @@ int AudioSystemAnalyzer::get_impulse_response(double *ir, int len)
         if (std::isnan(ir[i]))
             std::cout << "NAN2" << std::endl;
     calc_mtx.unlock();
+
+    return num;
+}
+
+int AudioSystemAnalyzer::get_impulse_response_block(double *ir, int len)
+{
+    h_mtx.lock();
+    int num = len;
+    if (num > calc_result_N)
+        num = calc_result_N;
+    for (int i = 0; i < num; i++)
+        ir[i] = h[i];
+    for (int i = num; i < len; i++)
+        ir[i] = 0;
+    h_mtx.unlock();
 
     return num;
 }
@@ -698,7 +805,7 @@ int AudioSystemAnalyzer::int_calc_freq_resp()
     // phase (offset) compensation:
 
     for (int i = 0; i < Nf; i++){
-        compl_add_phase(f_h[i][0], f_h[i][1], 2 * M_PI * i * additional_offset / Nf );
+        compl_add_phase(f_h[i][0], f_h[i][1], 2 * M_PI * i * (combine_offset + additional_offset) / Nf );
     }
 
     return 0;
@@ -775,6 +882,11 @@ int AudioSystemAnalyzer::identify_delay()
     return identify_delay(audiobuffer->get_position());
 }
 
+void AudioSystemAnalyzer::set_type(int ch_type)
+{
+    next_ch_type = ch_type;
+}
+
 int AudioSystemAnalyzer::int_calc_phase()
 {
     if (Nf < 1)
@@ -784,7 +896,7 @@ int AudioSystemAnalyzer::int_calc_phase()
     phase_unwrapped[0] = phase[0];
     double offset = 0.0;
     for (int i = 1; i < Nf_real; i++){
-        phase[i] = atan2(f_h[i][1], f_h[i][0]); // + 2 * M_PI * i * additional_offset / Nf;
+        phase[i] = atan2(f_h[i][1], f_h[i][0]); // + 2 * M_PI * i * (combine_offset + additional_offset) / Nf;
         phase[i] = fmod((phase[i] + M_PI), 2*M_PI) - M_PI;
         double tmp = phase[i] + offset;
         if ((tmp - phase_unwrapped[i-1]) > M_PI){
@@ -1015,6 +1127,11 @@ int AudioSystemAnalyzer::result_Nf()
     return calc_result_Nf;
 }
 
+int AudioSystemAnalyzer::result_Offset()
+{
+    return calc_result_Offset;
+}
+
 int AudioSystemAnalyzer::get_freq_resp(double *fr, int len)
 {
     if (!calc_mtx.try_lock())
@@ -1238,16 +1355,20 @@ int AudioSystemAnalyzer::load_impulse_response(char *filename)
 
     calc_mtx.lock();
     set_filterlength(list_lengths_N[len_ind]);
+    h_mtx.lock();
     sf_count_t real_len = sf_read_double(file, h, N);
     for (int i = real_len; i < N; i++)
         h[i] = 0.0;
+    calc_result_N = N;
+    calc_result_Offset = additional_offset;
+    combine_offset = 0;
+    h_mtx.unlock();
 
     int_calc_freq_resp();
     int_calc_phase();
     int_calc_mscohere();
     int_calc_smooth();
 
-    calc_result_N = N;
     calc_result_L = N;
     calc_result_Nf = Nf_real;
     calculation_done = true;
@@ -1257,6 +1378,12 @@ int AudioSystemAnalyzer::load_impulse_response(char *filename)
     sf_close(file);
 
     return len_ind;
+}
+
+void AudioSystemAnalyzer::set_combine_irs(int chanA, int chanB)
+{
+    next_combine_chA = chanA;
+    next_combine_chB = chanB;
 }
 
 
@@ -1412,6 +1539,9 @@ void AudioSystemAnalyzer::calc_thread_fun()
         window->set_window_length(next_window_length);
         window->set_window_offset(next_window_offset);
         window->set_window_type(next_window_type);
+        ch_type = next_ch_type;
+        combine_chA = next_combine_chA;
+        combine_chB = next_combine_chB;
 
         if (start_calculation){
             calculation_done = false;
@@ -1419,7 +1549,12 @@ void AudioSystemAnalyzer::calc_thread_fun()
             if (L > 0){
                 calc_mtx.lock();
                 auto start_t  = std::chrono::high_resolution_clock::now();
-                int_identify_IR(end_position);
+                if (ch_type == config_channel_type_combine)
+                    int_combine_IRs();
+                else {
+                    int_identify_IR(end_position);
+                    combine_offset = 0;
+                }
                 int_calc_freq_resp();
                 int_calc_phase();
                 int_calc_mscohere();
@@ -1428,7 +1563,6 @@ void AudioSystemAnalyzer::calc_thread_fun()
                 calc_time_full = std::chrono::duration_cast<std::chrono::milliseconds>(ende_t-start_t).count();
                 calc_mtx.unlock();
             }
-            calc_result_N = N;
             calc_result_L = L;
             calc_result_Nf = Nf_real;
             calculation_done = true;

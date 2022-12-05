@@ -16,6 +16,10 @@ extern const int config_stdindex_N;
 extern const int config_stdindex_L;
 extern const int config_stdindex_Nf;
 
+extern const std::vector<std::string> list_channel_types;
+extern const int config_channel_type_live;
+extern const int config_channel_type_combine;
+extern const int config_stdindex_channel_type;
 
 extern const std::vector<std::string> list_sysident_methods;
 extern const int config_sysident_TDMSE_T;

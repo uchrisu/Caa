@@ -52,8 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
     channel_configs.resize(NUM_SYSTEMS);
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
-        channel_configs[i] = new ChannelConfigWidget(this);
-        channel_configs[i]->set_sysNumber(i);
+        channel_configs[i] = new ChannelConfigWidget(i, this);
     }
 
     channels_layouts.resize(NUM_SYSTEMS);
@@ -122,7 +121,7 @@ void MainWindow::init_analyzer()
     asa.resize(NUM_SYSTEMS);
 
     for (int i = 0; i < NUM_SYSTEMS; i++){
-        asa[i] = new AudioSystemAnalyzer(jabuffer, i);
+        asa[i] = new AudioSystemAnalyzer(jabuffer, i, asa);
         asa[i]->set_filterlength(list_lengths_N[channel_configs[i]->ui->comboBox_N->currentIndex()]);
         asa[i]->set_analyze_length(list_lengths_L[channel_configs[i]->ui->comboBox_L->currentIndex()]);
         asa[i]->set_freq_length(list_lengths_Nf[channel_configs[i]->ui->comboBox_Nfft->currentIndex()]);
@@ -282,14 +281,13 @@ void MainWindow::ch_tab_changes(int index)
 {
     if (index == NUM_SYSTEMS) {
         jabuffer->add_channels(2);
-        asa.push_back(new AudioSystemAnalyzer(jabuffer, NUM_SYSTEMS));
+        asa.push_back(new AudioSystemAnalyzer(jabuffer, NUM_SYSTEMS, asa));
         channels_tabs.push_back(new QWidget);
         ui->tab_channels->addTab(channels_tabs[NUM_SYSTEMS + 1], "+");
         ui->tab_channels->setTabText(NUM_SYSTEMS, QString::number(NUM_SYSTEMS + 1));
         channels_layouts.push_back(new QVBoxLayout);
         channels_tabs[NUM_SYSTEMS]->setLayout(channels_layouts[NUM_SYSTEMS]);
-        channel_configs.push_back(new ChannelConfigWidget(this));
-        channel_configs[NUM_SYSTEMS]->set_sysNumber(NUM_SYSTEMS);
+        channel_configs.push_back(new ChannelConfigWidget(NUM_SYSTEMS, this));
         channels_layouts[NUM_SYSTEMS]->addWidget(channel_configs[NUM_SYSTEMS]);
         asa[NUM_SYSTEMS]->set_filterlength(list_lengths_N[channel_configs[NUM_SYSTEMS]->ui->comboBox_N->currentIndex()]);
         asa[NUM_SYSTEMS]->set_analyze_length(list_lengths_L[channel_configs[NUM_SYSTEMS]->ui->comboBox_L->currentIndex()]);
@@ -303,6 +301,10 @@ void MainWindow::ch_tab_changes(int index)
         connect(channel_configs[NUM_SYSTEMS], SIGNAL(colorChanged(int,QColor)), plot_ir, SLOT(change_color(int,QColor)));
         connect(channel_configs[NUM_SYSTEMS], SIGNAL(colorChanged(int,QColor)), plot_signal, SLOT(change_color(int,QColor)));
         connect(channel_configs[NUM_SYSTEMS], SIGNAL(colorChanged(int,QColor)), plot_freqResp, SLOT(change_color(int,QColor)));
+
+        for (int i = 0; i <= NUM_SYSTEMS; i++){
+            channel_configs[i]->add_channels(1);
+        }
 
         NUM_SYSTEMS++;
 
