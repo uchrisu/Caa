@@ -120,7 +120,7 @@ void ChannelConfigWidget::add_channels(int number)
 void ChannelConfigWidget::sel_type_changed(int index)
 {
     type = index;
-    if (type == config_channel_type_combine){
+    if (type == config_channel_type_multiply || type == config_channel_type_divide){
         ui->label_SystemIdentMethod->hide();
         ui->comboBox_SysIdentMethod->hide();
         ui->comboBox_SysIdentWindow->hide();

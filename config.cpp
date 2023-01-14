@@ -15,9 +15,10 @@ extern const std::vector<int> list_lengths_Nf = {512, 1024, 2048, 4096, 8192, 16
 
 extern const std::vector<int> list_smoothing_per_oct = {3, 6, 12, 24, 48};
 
-extern const std::vector<std::string> list_channel_types = {"Live", "Combine"};
+extern const std::vector<std::string> list_channel_types = {"Live", "Multiply", "Divide"};
 extern const int config_channel_type_live = 0;
-extern const int config_channel_type_combine = 1;
+extern const int config_channel_type_multiply = 1;
+extern const int config_channel_type_divide = 2;
 extern const int config_stdindex_channel_type = 0;
 
 extern const std::vector<std::string> list_sysident_methods = {"TDMSE-T", "Dual FFT"};

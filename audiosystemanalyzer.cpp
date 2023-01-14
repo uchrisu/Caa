@@ -706,7 +706,7 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
 
 }
 
-int AudioSystemAnalyzer::int_combine_IRs()
+int AudioSystemAnalyzer::int_combine_IRs(int comb_type)
 {
     combine_offset = 0;
     combine_offset += asas[combine_chA]->result_Offset();
@@ -715,17 +715,29 @@ int AudioSystemAnalyzer::int_combine_IRs()
         combine_fft_h[i] = 0;
     fftw_execute(plan_combine_fft1);
 
-    combine_offset += asas[combine_chB]->result_Offset();
+    if (comb_type == config_channel_type_multiply)
+        combine_offset += asas[combine_chB]->result_Offset();
+    else
+        combine_offset -= asas[combine_chB]->result_Offset();
+
     asas[combine_chB]->get_impulse_response_block(combine_fft_h, N);
     for (int i = N; i < 2*N; i++)
         combine_fft_h[i] = 0;
     fftw_execute(plan_combine_fft2);
 
-    for (int i = 0; i < 2*N; i++){
-        double re = combine_fft_f1[i][0]*combine_fft_f2[i][0] - combine_fft_f1[i][1]*combine_fft_f2[i][1];
-        double im = combine_fft_f1[i][0]*combine_fft_f2[i][1] + combine_fft_f1[i][1]*combine_fft_f2[i][0];
-        combine_fft_f1[i][0] = re;
-        combine_fft_f1[i][1] = im;
+    if (comb_type == config_channel_type_multiply){
+        for (int i = 0; i < 2*N; i++){
+            double re = combine_fft_f1[i][0]*combine_fft_f2[i][0] - combine_fft_f1[i][1]*combine_fft_f2[i][1];
+            double im = combine_fft_f1[i][0]*combine_fft_f2[i][1] + combine_fft_f1[i][1]*combine_fft_f2[i][0];
+            combine_fft_f1[i][0] = re;
+            combine_fft_f1[i][1] = im;
+        }
+    }
+
+    if (comb_type == config_channel_type_divide){
+        for (int i = 0; i < 2*N; i++){
+            compl_divide(combine_fft_f1[i][0], combine_fft_f1[i][1], combine_fft_f2[i][0], combine_fft_f2[i][1]);
+        }
     }
 
     fftw_execute(plan_combine_ifft);
@@ -1549,8 +1561,10 @@ void AudioSystemAnalyzer::calc_thread_fun()
             if (L > 0){
                 calc_mtx.lock();
                 auto start_t  = std::chrono::high_resolution_clock::now();
-                if (ch_type == config_channel_type_combine)
-                    int_combine_IRs();
+                if (ch_type == config_channel_type_multiply)
+                    int_combine_IRs(config_channel_type_multiply);
+                else if (ch_type == config_channel_type_divide)
+                    int_combine_IRs(config_channel_type_divide);
                 else {
                     int_identify_IR(end_position);
                     combine_offset = 0;

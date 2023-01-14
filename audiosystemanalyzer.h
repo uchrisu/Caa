@@ -78,7 +78,7 @@ public:
 private:
 
     int int_identify_IR(int64_t end_position);
-    int int_combine_IRs();
+    int int_combine_IRs(int comb_type);
     int int_calc_freq_resp();
     int int_calc_phase();
     int int_calc_mscohere();
