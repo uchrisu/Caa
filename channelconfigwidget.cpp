@@ -33,6 +33,12 @@ ChannelConfigWidget::ChannelConfigWidget(int number, QWidget *parent) :
     ui->comboBox_SysIdentWindow->setCurrentIndex(0);
     connect(ui->comboBox_SysIdentWindow, SIGNAL(currentIndexChanged(int)), this, SLOT(sel_sysident_window_changed(int)));
 
+    ui->horizontalSlider_SysIdentMu->setMinimum(0);
+    ui->horizontalSlider_SysIdentMu->setMaximum(100);
+    ui->horizontalSlider_SysIdentMu->setTickInterval(5);
+    ui->horizontalSlider_SysIdentMu->setValue(10);
+    connect(ui->horizontalSlider_SysIdentMu, SIGNAL(valueChanged(int)), this, SLOT(slider_sysidentMu_changed(int)));
+
     for (int chan = 0; chan < NUM_SYSTEMS; chan++){
         ui->comboBox_comb_chanA->addItem(QString::number(chan+1));
         ui->comboBox_comb_chanB->addItem(QString::number(chan+1));
@@ -72,6 +78,7 @@ ChannelConfigWidget::ChannelConfigWidget(int number, QWidget *parent) :
     ui->slider_ExpTimeSmoothing->setMinimum(0);
     ui->slider_ExpTimeSmoothing->setMaximum(100);
     ui->slider_ExpTimeSmoothing->setTickInterval(5);
+    ui->slider_ExpTimeSmoothing->setValue(0);
     connect(ui->slider_ExpTimeSmoothing, SIGNAL(valueChanged(int)), this, SLOT(slider_expTimeSmooth_changed(int)));
 
     for (const auto& name : windowfunc::get_type_names())
@@ -124,6 +131,8 @@ void ChannelConfigWidget::sel_type_changed(int index)
         ui->label_SystemIdentMethod->hide();
         ui->comboBox_SysIdentMethod->hide();
         ui->comboBox_SysIdentWindow->hide();
+        ui->label_SystemIdentMethod->hide();
+        ui->horizontalSlider_SysIdentMu->hide();
         ui->label_comb_chanA->show();
         ui->label_comb_chanB->show();
         ui->comboBox_comb_chanA->show();
@@ -145,6 +154,14 @@ void ChannelConfigWidget::sel_type_changed(int index)
             ui->comboBox_SysIdentWindow->show();
         else
             ui->comboBox_SysIdentWindow->hide();
+        if (index == config_sysident_NLMS){
+            ui->label_SysIdentMu->show();
+            ui->horizontalSlider_SysIdentMu->show();
+        }
+        else {
+            ui->label_SysIdentMu->hide();
+            ui->horizontalSlider_SysIdentMu->hide();
+        }
         ui->pushButton_CalcDelay->show();
         ui->label_Delay->show();
         ui->lineEdit_Delay->show();
@@ -162,6 +179,16 @@ void ChannelConfigWidget::sel_sysident_changed(int index)
         ui->comboBox_SysIdentWindow->show();
     else
         ui->comboBox_SysIdentWindow->hide();
+
+    if (index == config_sysident_NLMS){
+        ui->label_SysIdentMu->show();
+        ui->horizontalSlider_SysIdentMu->show();
+    }
+    else {
+        ui->label_SysIdentMu->hide();
+        ui->horizontalSlider_SysIdentMu->hide();
+    }
+
     if (asa != nullptr){
         std::cout << "System " << sys << ": Setting Identification Method = " << list_sysident_methods[index] << std::endl;
         asa->set_sysident_method(index);
@@ -248,8 +275,16 @@ void ChannelConfigWidget::sel_Nfft_changed(int index)
 void ChannelConfigWidget::slider_expTimeSmooth_changed(int position)
 {
     if (asa != nullptr){
-        std::cout << "System " << sys << ": Exp. Time Smooting new Value: " << position << std::endl;
+        std::cout << "System " << sys << ": Exp. Time Smooting new Value: " << position/100.0 << std::endl;
         asa->set_expTimeSmoothFactor(static_cast<double>(position)/100.0);
+    }
+}
+
+void ChannelConfigWidget::slider_sysidentMu_changed(int position)
+{
+    if (asa != nullptr){
+        std::cout << "System " << sys << ": Learning Rate new Value: " << position/100.0 << std::endl;
+        asa->set_LearningRate(static_cast<double>(position)/100.0);
     }
 }
 

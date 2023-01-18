@@ -30,6 +30,7 @@ public:
     void set_freq_smooting(int steps_per_octave);
     void set_sysident_method(int method);
     void set_expTimeSmoothFactor(double factor);
+    void set_LearningRate(double factor);
     int get_freq_smooting();
     int identify_delay(int64_t end_position);
     int identify_delay();
@@ -109,10 +110,13 @@ private:
 
     int N, Nf;
     int Nf_real;
-    int64_t end_position;
+    int64_t end_position;    
     int L;
     int system_delay, additional_offset, combine_offset;
     double expTimeSmoothFactor;
+    double learningRate;
+
+    int64_t last_nlms_position;
 
     double *h;
     double *phase, *phase_unwrapped, *groupdelay;
@@ -194,6 +198,7 @@ private:
     std::atomic<int> next_freq_smooting;
     std::atomic<int> next_sysident_method;
     std::atomic<double> next_expTimeSmoothFactor;
+    std::atomic<double> next_learningRate;
     std::atomic<int> next_sysident_window_type;
     std::atomic<int> next_window_length;
     std::atomic<int> next_window_offset;

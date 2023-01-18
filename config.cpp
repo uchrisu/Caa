@@ -21,9 +21,10 @@ extern const int config_channel_type_multiply = 1;
 extern const int config_channel_type_divide = 2;
 extern const int config_stdindex_channel_type = 0;
 
-extern const std::vector<std::string> list_sysident_methods = {"TDMSE-T", "Dual FFT"};
+extern const std::vector<std::string> list_sysident_methods = {"TDMSE-T", "Dual FFT", "NLMS"};
 extern const int config_sysident_TDMSE_T = 0;
 extern const int config_sysident_DUALFFT = 1;
+extern const int config_sysident_NLMS = 2;
 extern const int config_stdindex_sysident_methods = 0;
 
 QColor get_color(int index, int type)

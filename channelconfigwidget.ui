@@ -87,6 +87,23 @@
       <widget class="QComboBox" name="comboBox_SysIdentWindow"/>
      </item>
      <item>
+      <widget class="QLabel" name="label_SysIdentMu">
+       <property name="text">
+        <string>Learning Rate:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSlider" name="horizontalSlider_SysIdentMu">
+       <property name="maximum">
+        <number>100</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
       <layout class="QHBoxLayout" name="horizontalLayout_comb_chanA">
        <item>
         <widget class="QLabel" name="label_comb_chanA">

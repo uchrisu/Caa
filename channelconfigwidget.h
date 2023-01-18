@@ -24,6 +24,7 @@ private slots:
     void sel_type_changed(int index);
     void sel_sysident_changed(int index);
     void sel_sysident_window_changed(int index);
+    void slider_sysidentMu_changed(int position);
     void sel_combine_chA_changed(int index);
     void sel_combine_chB_changed(int index);
     void calc_delay_clicked();

@@ -25,6 +25,7 @@ extern const int config_stdindex_channel_type;
 extern const std::vector<std::string> list_sysident_methods;
 extern const int config_sysident_TDMSE_T;
 extern const int config_sysident_DUALFFT;
+extern const int config_sysident_NLMS;
 extern const int config_stdindex_sysident_methods;
 
 extern QColor get_color(int index, int type);

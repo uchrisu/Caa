@@ -31,6 +31,7 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index, std::v
     this->calculation_done = false;
 
     this->end_position = 0;
+    this->last_nlms_position = 0;
 
     this->audiobuffer = buffer;
     this->additional_offset = 0;
@@ -88,6 +89,7 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index, std::v
 
     N = Nf = Nf_real = L = system_delay = additional_offset = combine_offset = -1;
     expTimeSmoothFactor = - 1.0;
+    learningRate = - 1.0;
     steps_per_octave = -1;
     combine_chA = -1;
     combine_chB = -1;
@@ -97,6 +99,7 @@ AudioSystemAnalyzer::AudioSystemAnalyzer(JAudioBuffer *buffer, int index, std::v
     set_analyze_length(STANDARD_ANALYZE_LENGTH);
     set_freq_smooting(0);
     set_expTimeSmoothFactor(0.0);
+    set_LearningRate(0.1);
 
     next_offset = 0;
     next_delay = 0;
@@ -542,6 +545,17 @@ void AudioSystemAnalyzer::set_expTimeSmoothFactor(double factor)
     next_expTimeSmoothFactor = fac;
 }
 
+void AudioSystemAnalyzer::set_LearningRate(double factor)
+{
+    double fac = factor;
+    if (fac < 0)
+        fac = 0.0;
+    if (fac > 1)
+        fac = 1.0;
+
+    next_learningRate = fac;
+}
+
 int AudioSystemAnalyzer::get_freq_smooting()
 {
     return steps_per_octave;
@@ -682,6 +696,45 @@ int AudioSystemAnalyzer::int_identify_IR(int64_t end_position)
         }
 
 
+    }
+    else if (sysident_method == config_sysident_NLMS){
+        double mu = learningRate;
+        int max_i = N;
+
+        int start_pos;
+
+        if (pos_sig > last_nlms_position)
+            start_pos = N;
+        else
+            start_pos = last_nlms_position - pos_sig;
+
+        if (start_pos < N)
+            start_pos = N;
+
+        last_nlms_position = pos_sig + L;
+
+        h_mtx.lock();
+        if (calc_result_N < N)
+            max_i = calc_result_N;
+        for (int i = 0; i < max_i; i++){
+            h_new[i] = h[i];
+        }
+        h_mtx.unlock();
+        for (int i = max_i; i < N; i++){
+            h_new[i] = 0;
+        }
+        for (int pos = start_pos; pos < L; pos++){
+            double sum = 0.0;
+            double norm = 0.0;
+            for (int i = 0; i < N; i++){
+                sum += h_new[i] * x[pos - i];
+                norm += x[pos - i] * x[pos - i];
+            }
+            double e = y[pos] - sum;
+            for (int i = 0; i < N; i++){
+                h_new[i] += mu * e * x[pos - i] / norm;
+            }
+        }
     }
     else
         return -1;
@@ -1547,6 +1600,8 @@ void AudioSystemAnalyzer::calc_thread_fun()
             int_set_freq_smooting(next_freq_smooting);
         this->sysident_method = next_sysident_method;
         this->expTimeSmoothFactor = next_expTimeSmoothFactor;
+        this->learningRate = next_learningRate;
+        this->learningRate = next_learningRate;
         sysident_window->set_window_type(next_sysident_window_type);
         window->set_window_length(next_window_length);
         window->set_window_offset(next_window_offset);
