@@ -18,7 +18,7 @@ public:
     int get_window_offset();
     double get_factor(int n);
     void apply_window(double *vals, int len);
-    void get_window(double *vals, int len);
+    void get_window(double *vals, int len, int additional_offset = 0);
 
     static std::string get_type_name(int index);
 

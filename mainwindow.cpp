@@ -89,6 +89,18 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->spinBox_freqMin, SIGNAL(valueChanged(int)), this, SLOT(spin_freqMin_changed(int)));
     connect(ui->spinBox_freqMax, SIGNAL(valueChanged(int)), this, SLOT(spin_freqMax_changed(int)));
 
+    int max_N = list_lengths_N.back();
+    ui->spinBox_irMinX->setMinimum(-max_N);
+    ui->spinBox_irMinX->setMaximum(max_N);
+    ui->spinBox_irMaxX->setMinimum(-max_N);
+    ui->spinBox_irMaxX->setMaximum(max_N);
+    connect(ui->spinBox_irMinX, SIGNAL(valueChanged(int)), this, SLOT(spin_irMinX_changed(int)));
+    connect(ui->spinBox_irMaxX, SIGNAL(valueChanged(int)), this, SLOT(spin_irMaxX_changed(int)));
+
+    ui->spinBox_irMinX->setValue(0);
+    ui->spinBox_irMaxX->setValue(list_lengths_N[config_stdindex_N]);
+    plot_ir->zoom_sample(0, list_lengths_N[config_stdindex_N]);
+
     // Timer
 
     updatetimer = new QTimer(this);
@@ -197,16 +209,18 @@ void MainWindow::update_timer_event()
             int N = asa[number]->result_N();
             //int L = asa[number]->result_L();
             int Nf = asa[number]->result_Nf();
+            int offset = asa[number]->result_Offset();
 
             double ir[N];
+            double sample_id[N];
+
             asa[number]->get_impulse_response(ir, N);
             for (int i = 0; i < N; i++)
-                if (std::isnan(ir[i]))
-                    std::cout << "NAN3" << std::endl;
-            plot_ir->set_ir_data(number, nullptr, ir, N);
+                sample_id[i] = i - offset;
+            plot_ir->set_ir_data(number, sample_id, ir, N);
             double window[N];
             asa[number]->get_window_vals(window, N);
-            plot_ir->set_window_data(number, nullptr, window, N);
+            plot_ir->set_window_data(number, sample_id, window, N);
             plot_ir->replot();
 
 
@@ -339,6 +353,24 @@ void MainWindow::spin_freqMax_changed(int val)
         ui->spinBox_freqMax->setValue(val);
     }
     plot_freqResp->zoom_freq(ui->spinBox_freqMin->value(), val);
+}
+
+void MainWindow::spin_irMinX_changed(int val)
+{
+    if (val > (ui->spinBox_irMaxX->value() - 128)){
+        val = ui->spinBox_irMaxX->value() - 128;
+        ui->spinBox_irMinX->setValue(val);
+    }
+    plot_ir->zoom_sample(val, ui->spinBox_irMaxX->value());
+}
+
+void MainWindow::spin_irMaxX_changed(int val)
+{
+    if (val < (ui->spinBox_irMinX->value() + 128)){
+        val = ui->spinBox_irMinX->value() + 128;
+        ui->spinBox_irMaxX->setValue(val);
+    }
+    plot_ir->zoom_sample(ui->spinBox_irMinX->value(), val);
 }
 
 

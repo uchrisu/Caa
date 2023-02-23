@@ -17,7 +17,6 @@
 #include "plotfreqresp.h"
 #include "plotir.h"
 #include "plotsignal.h"
-#include "qcombobox.h"
 #include "channelconfigwidget.h"
 
 QT_BEGIN_NAMESPACE
@@ -43,6 +42,9 @@ private slots:
 
     void spin_freqMin_changed(int val);
     void spin_freqMax_changed(int val);
+
+    void spin_irMinX_changed(int val);
+    void spin_irMaxX_changed(int val);
 
 private:
     void update_statusbar();

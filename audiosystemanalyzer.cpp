@@ -808,7 +808,7 @@ int AudioSystemAnalyzer::int_calc_freq_resp()
     if (Nf < N)
         lim1 = Nf;
     for (int i = 0; i < lim1; i++)
-        h_fft[i] = h[i] * window->get_factor(i);
+        h_fft[i] = h[i] * window->get_factor(i - calc_result_Offset);
     for (int i = lim1; i < Nf; i ++)
         h_fft[i] = 0;
 
@@ -817,7 +817,7 @@ int AudioSystemAnalyzer::int_calc_freq_resp()
     // phase (offset) compensation:
 
     for (int i = 0; i < Nf; i++){
-        compl_add_phase(f_h[i][0], f_h[i][1], 2 * M_PI * i * (combine_offset + additional_offset) / Nf );
+        compl_add_phase(f_h[i][0], f_h[i][1], 2 * M_PI * i * (calc_result_Offset) / Nf );
     }
 
     return 0;
@@ -1312,7 +1312,7 @@ void AudioSystemAnalyzer::set_window_type(int wintype)
 
 void AudioSystemAnalyzer::get_window_vals(double *vals, int length)
 {
-    window->get_window(vals, length);
+    window->get_window(vals, length, calc_result_Offset);
 }
 
 int AudioSystemAnalyzer::get_calc_time_full()

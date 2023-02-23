@@ -22,6 +22,8 @@ public:
     void zoom_in();
     void zoom_out();
 
+    void zoom_sample(int min, int max);
+
 public slots:
     void change_color(int sysindex, QColor color);
 

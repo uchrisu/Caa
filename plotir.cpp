@@ -131,6 +131,11 @@ void PlotIR::zoom_out()
     rezoom();
 }
 
+void PlotIR::zoom_sample(int min, int max)
+{
+    setAxisScale(QwtPlot::xBottom, min, max);
+}
+
 void PlotIR::change_color(int sysindex, QColor color)
 {
     if ((sysindex >= 0) && (sysindex < NUM_SYSTEMS)){

@@ -108,11 +108,11 @@ void windowfunc::apply_window(double *vals, int len)
     }
 }
 
-void windowfunc::get_window(double *vals, int len)
+void windowfunc::get_window(double *vals, int len, int additional_offset)
 {
     for (int i = 0; i < len; i++)
     {
-        vals[i] = get_factor(i);
+        vals[i] = get_factor(i - additional_offset);
     }
 }
 
